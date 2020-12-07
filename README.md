@@ -1,9 +1,20 @@
 # go-paranoid-broccoli
 Experimental Go static analysis and robustness checker - WARNING still in development and messy.
 
-The first feature is a "private to file" marker which ensure that a function/type/variable declared after this marker cannot be used in another file of the same package.
+**Feature: private to file**
 
-Test with the source code itself:
+The first and currently only feature is a "private to file" marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
+
+For example:
+```
+//!PB_PRIVATE_TO_FILE
+var i int
+```
+disallows i to be used in other files of the same package.
+
+**How to test**
+
+You can test with the source code itself:
 
 ```
 cd go-paranoid-broccoli
