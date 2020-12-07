@@ -72,7 +72,7 @@ func main() {
 				if filepath1 != filepath2 {
 					//fmt.Printf("%s %+v\n", stmt.name, infosFile2.globalPrivateToFileDecl)
 					if _, ok := infosFile2.globalPrivateToFileDecl[stmt.name]; ok {
-						fmt.Println("FATAL: declaration in " + filepath1 + " cannot call " + stmt.name + " in " + filepath2 + " (after " + constPrivateToFileMarkerName + ")")
+						fmt.Println("FATAL: cannot call " + stmt.name + " in " + filepath1 + ", declared in " + filepath2 + " after " + constPrivateToFileMarkerName)
 						os.Exit(1)
 					}
 				}
