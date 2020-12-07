@@ -3,15 +3,14 @@ Experimental Go static analysis and robustness checker - WARNING still in develo
 
 The first feature is a "private to file" marker which ensure that a function/type/variable declared after this marker cannot be used in another file of the same package.
 
-Test with:
+Test with the source code itself:
 
 ```
 cd go-paranoid-broccoli
-go build && ./go-paranoid-broccoli
+go build && ./go-paranoid-broccoli -dir .
 ```
 
 It should display something like:
 ```
-FATAL: cannot call testFunction in main.go, declared in parse_file.go after privateToFileMarker
+FATAL: cannot use testVar in main.go, declared with //!PB_PRIVATE_TO_FILE in parse_file.go
 ```
-
