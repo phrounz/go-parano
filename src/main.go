@@ -21,7 +21,6 @@ type infosFile struct {
 }
 
 const constPrivateToFileComment = "//!PB_PRIVATE_TO_FILE"
-
 const constExaustiveFilling = "//!PB_EXHAUSTIVE_FILLING"
 
 var colorRed = "\033[31m"
@@ -83,7 +82,7 @@ func main() {
 		var exhaustiveFillingStructs = make(map[string]map[string]bool)
 
 		rootNode.visit(func(n *node) {
-			if n.typeStr == "CommentGroup" && n.bytes == constPrivateToFileComment && n.father != nil {
+			if isCommentGroupWithComment(n, constPrivateToFileComment) && n.father != nil {
 				if n.father.typeStr == "GenDecl" {
 					for _, n2 := range n.father.children {
 						if n2.typeStr == "ValueSpec" {
@@ -111,7 +110,8 @@ func main() {
 						globalPrivateToFileDecl[nextNode.name] = true
 					}
 				}
-			} else if n.typeStr == "CommentGroup" && n.bytes == constExaustiveFilling && n.father != nil {
+			}
+			if isCommentGroupWithComment(n, constExaustiveFilling) && n.father != nil {
 				var nextNode = n.nextNode()
 				if nextNode != nil && nextNode.typeStr == "TypeSpec" {
 					if debugInfo {
@@ -212,6 +212,19 @@ func main() {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+//------------------------------------------------------------------------------
+
+func isCommentGroupWithComment(n *node, comment string) bool {
+	if n.typeStr == "CommentGroup" {
+		for _, child := range n.children {
+			if child.bytes == comment {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 //------------------------------------------------------------------------------
