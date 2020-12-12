@@ -3,7 +3,7 @@ Experimental Go static analysis and robustness checker - WARNING still in develo
 
 **Feature: private to file**
 
-The first and currently only feature is a "private to file" marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
+The first feature is a "private to file" marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
 
 For example:
 ```
@@ -12,16 +12,33 @@ var i int
 ```
 disallows i to be used in other files of the same package.
 
+**Feature: struct exhaustive filling**
+
+The second feature is a way to check that a structure is complete.
+```
+//!PB_EXHAUSTIVE_FILLING
+type testType1 struct {
+	foo1 int
+	foo2 int
+}
+...
+var testNokFill = testType1{
+  foo1: 3, // ---> foo2 is detected as missing
+}
+```
+
 **How to test**
 
 You can test with the source code itself:
 
 ```
 cd go-paranoid-broccoli
-go build && ./go-paranoid-broccoli -dir .
+go build -o go-paranoid-broccoli.out ./src/*
+./go-paranoid-broccoli.out -dir examples/
 ```
 
 It should display something like:
 ```
 FATAL: cannot use testVar in main.go, declared with //!PB_PRIVATE_TO_FILE in parse_file.go
 ```
+
