@@ -1,5 +1,6 @@
 package main
 
+//!PB_PRIVATE_TO_FILE
 //!PB_EXHAUSTIVE_FILLING
 type testType1 struct {
 	foo1 int
