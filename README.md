@@ -14,7 +14,7 @@ disallows i to be used in other files of the same package.
 
 **Feature: struct exhaustive filling**
 
-The second feature is a way to check that a structure is complete.
+The second feature is a way to check that a structure is completely filled.
 ```
 //!PB_EXHAUSTIVE_FILLING
 type testType1 struct {
