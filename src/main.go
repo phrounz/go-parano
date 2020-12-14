@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -16,12 +17,13 @@ import (
 
 type infosFile struct {
 	rootNode                 *node
-	globalPrivateToFileDecl  map[string]bool
+	privateToFileDecl        map[string]bool
 	exhaustiveFillingStructs map[string]map[string]bool
 }
 
 const constPrivateToFileComment = "//!PB_PRIVATE_TO_FILE"
 const constExaustiveFilling = "//!PB_EXHAUSTIVE_FILLING"
+const constLocalPrivateStuffLineRegexp = "\n//\\s+LOCAL PRIVATE STUFF\\s+\n"
 
 var colorRed = "\033[31m"
 var colorDefault = "\033[39m"
@@ -73,15 +75,28 @@ func main() {
 		//----
 		// first pass => load file and get nodes
 
+		var locationLocalPrivateStuff = -1
+
 		var rootNode = readFile(filepath)
 
-		//----
-		// second pass => get globalPrivateToFileDecl/exhaustiveFillingStructs
+		var loc = regexp.MustCompile(constLocalPrivateStuffLineRegexp).FindIndex(fileBytes)
+		if len(loc) > 0 {
+			locationLocalPrivateStuff = loc[1]
+		}
+		if debugInfo || *verbose {
+			fmt.Printf("  locationLocalPrivateStuff: %d\n", locationLocalPrivateStuff)
+		}
 
-		var globalPrivateToFileDecl = make(map[string]bool)
+		//----
+		// second pass => get privateToFileDecl/exhaustiveFillingStructs
+
+		var privateToFileDecl = make(map[string]bool)
 		var exhaustiveFillingStructs = make(map[string]map[string]bool)
 
 		rootNode.visit(func(n *node) {
+			if n.typeStr == "Ident" && n.depthLevel <= 4 && locationLocalPrivateStuff != -1 && n.bytesIndexBegin > locationLocalPrivateStuff {
+				privateToFileDecl[n.name] = true
+			}
 			if isCommentGroupWithComment(n, constPrivateToFileComment) && n.father != nil {
 				if n.father.typeStr == "GenDecl" {
 					for _, n2 := range n.father.children {
@@ -91,7 +106,7 @@ func main() {
 								if debugInfo {
 									fmt.Printf("CCCC >=%s <=\n", name)
 								}
-								globalPrivateToFileDecl[name] = true
+								privateToFileDecl[name] = true
 								break
 							}
 						}
@@ -100,14 +115,14 @@ func main() {
 					if debugInfo {
 						fmt.Printf("AAAA >=%s %s<=\n", n.father.name, n.father.typeStr)
 					}
-					globalPrivateToFileDecl[n.father.name] = true
+					privateToFileDecl[n.father.name] = true
 				} else {
 					var nextNode = n.nextNode()
 					if nextNode != nil && nextNode.typeStr == "TypeSpec" {
 						if debugInfo {
 							fmt.Printf("BBBB >=%s %s<=\n", nextNode.name, nextNode.typeStr)
 						}
-						globalPrivateToFileDecl[nextNode.name] = true
+						privateToFileDecl[nextNode.name] = true
 					}
 				}
 			}
@@ -137,13 +152,13 @@ func main() {
 		})
 
 		if debugInfo {
-			fmt.Printf("\n\n\nglobalPrivateToFileDecl: %+v\n", globalPrivateToFileDecl)
+			fmt.Printf("\n\n\nprivateToFileDecl: %+v\n", privateToFileDecl)
 			fmt.Printf("\n\n\nexhaustiveFillingStructs: %+v\n", exhaustiveFillingStructs)
 		}
 
 		infosByFile[filepath] = infosFile{
 			rootNode:                 rootNode,
-			globalPrivateToFileDecl:  globalPrivateToFileDecl,
+			privateToFileDecl:        privateToFileDecl,
 			exhaustiveFillingStructs: exhaustiveFillingStructs,
 		}
 	}
@@ -167,12 +182,12 @@ func main() {
 				for filepath2, infosFile2 := range infosByFile {
 
 					//----
-					// globalPrivateToFileDecl
+					// privateToFileDecl
 
 					if filepath1 != filepath2 {
-						if _, ok := infosFile2.globalPrivateToFileDecl[n.name]; ok {
-							notPass(fmt.Sprintf("cannot use %s in %s, declared with %s in %s",
-								n.name, filepath1, constPrivateToFileComment, filepath2))
+						if _, ok := infosFile2.privateToFileDecl[n.name]; ok {
+							notPass(fmt.Sprintf("cannot use %s in %s, declared as private to file in %s",
+								n.name, filepath1, filepath2))
 							failedAtLeastOnce = true
 						}
 					}

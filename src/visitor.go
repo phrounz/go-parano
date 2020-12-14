@@ -121,6 +121,9 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 		// }
 	case *ast.Ident:
 		n.name = n.bytes
+		if n.name == "" {
+			panic("empty bytes for *ast.Ident ?")
+		}
 		n.typeStr = "Ident"
 	}
 
