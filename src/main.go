@@ -21,8 +21,8 @@ type infosFile struct {
 	exhaustiveFillingStructs map[string]map[string]bool
 }
 
-const constPrivateToFileComment = "//!PB_PRIVATE_TO_FILE"
-const constExaustiveFilling = "//!PB_EXHAUSTIVE_FILLING"
+const constPrivateToFileComment = "//!PARANO__PRIVATE_TO_FILE"
+const constExaustiveFilling = "//!PARANO__EXHAUSTIVE_FILLING"
 const constLocalPrivateStuffLineRegexp = "\n//\\s+LOCAL PRIVATE STUFF\\s+\n"
 
 var colorRed = "\033[31m"
