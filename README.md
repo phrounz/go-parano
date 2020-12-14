@@ -46,10 +46,12 @@ go build -o go-paranoid-broccoli.out ./src/*
 It should display something like:
 ```
 DO NOT PASS: missing key(s) foo3, foo4 in declaration of testType1, declared with //!PB_EXHAUSTIVE_FILLING in examples/example1.go
-DO NOT PASS: cannot use testVarNotOkay in examples/example1.go, declared with //!PB_PRIVATE_TO_FILE in examples/example2.go
-DO NOT PASS: cannot use testType2 in examples/example1.go, declared with //!PB_PRIVATE_TO_FILE in examples/example2.go
-DO NOT PASS: cannot use testType3 in examples/example1.go, declared with //!PB_PRIVATE_TO_FILE in examples/example2.go
-DO NOT PASS: cannot use testFunctionNotOkay in examples/example1.go, declared with //!PB_PRIVATE_TO_FILE in examples/example2.go
-DO NOT PASS: cannot use testFunctionNotOkay in examples/example1.go, declared with //!PB_PRIVATE_TO_FILE in examples/example2.go
+DO NOT PASS: missing key(s) foo3, foo4 in declaration of testType1, type declared with //!PB_EXHAUSTIVE_FILLING in examples/example1.go
+DO NOT PASS: cannot use testVarNotOkay in examples/example1.go, declared as private to file in examples/example2.go
+DO NOT PASS: cannot use testType2 in examples/example1.go, declared as private to file in examples/example2.go
+DO NOT PASS: cannot use testType3 in examples/example1.go, declared as private to file in examples/example2.go
+DO NOT PASS: cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
+DO NOT PASS: cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
+DO NOT PASS: cannot use localPrivateStuffTest in examples/example1.go, declared as private to file in examples/example2.go
 ```
 
