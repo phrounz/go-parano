@@ -1,5 +1,9 @@
 # go-parano
-Experimental Go static analysis and robustness checker - WARNING still in development and messy.
+Experimental Go static analysis / robustness checker tool.
+
+It scans specific keywords in comments and alerts if something is not in agreement with them.
+
+WARNING still in development.
 
 **Feature: private to file**
 
@@ -29,7 +33,7 @@ type testType1 struct {
 }
 ...
 var testNokFill = testType1{
-  foo1: 3, // ---> foo2 is detected as missing
+  foo1: 3, // ---> foo2 is detected as unaffected
 }
 ```
 
