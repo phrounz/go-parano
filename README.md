@@ -38,9 +38,9 @@ var testNokFill = testType1{
 You can test with the source code itself:
 
 ```
-cd go-paranoid-broccoli
-go build -o go-paranoid-broccoli.out ./src/*
-./go-paranoid-broccoli.out -dir examples/
+cd go-parano
+go build -o go-parano.out ./src/*
+./go-parano.out -dir examples/
 ```
 
 It should display something like:
