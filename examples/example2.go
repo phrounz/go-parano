@@ -16,3 +16,7 @@ type testType2 struct {
 
 //!PB_PRIVATE_TO_FILE
 type testType3 int
+
+// LOCAL PRIVATE STUFF
+
+var localPrivateStuffTest bool

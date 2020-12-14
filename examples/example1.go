@@ -34,4 +34,6 @@ func main() {
 	if tata3 == 456 {
 	}
 	testFunctionNotOkay()
+
+	localPrivateStuffTest = true
 }
