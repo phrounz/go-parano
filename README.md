@@ -3,7 +3,7 @@ Experimental Go static analysis and robustness checker - WARNING still in develo
 
 **Feature: private to file**
 
-The first feature is a "private to file" marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
+The first feature is a _private to file_ marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
 
 For example:
 ```
@@ -11,6 +11,12 @@ For example:
 var i int
 ```
 disallows i to be used in other files of the same package.
+
+Also everything below the line:
+```
+// LOCAL PRIVATE STUFF
+```
+until the end of file, is also _private to file_.
 
 **Feature: struct exhaustive filling**
 
