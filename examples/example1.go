@@ -1,7 +1,7 @@
 package main
 
-//!PB_PRIVATE_TO_FILE
-//!PB_EXHAUSTIVE_FILLING
+//!PARANO__PRIVATE_TO_FILE
+//!PARANO__EXHAUSTIVE_FILLING
 type testType1 struct {
 	foo1 int
 	foo2 int
