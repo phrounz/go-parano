@@ -1,7 +1,3 @@
-/*
-	https://medium.com/justforfunc/understanding-go-programs-with-go-parser-c4e88a6edb87
-*/
-
 package main
 
 import (
@@ -9,28 +5,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
+
+	"./node"
 )
 
 //------------------------------------------------------------------------------
 
-type infosFile struct {
-	rootNode                 *node
-	privateToFileDecl        map[string]bool
-	exhaustiveFillingStructs map[string]map[string]bool
+type packageInfos struct {
+	packageName      string
+	packageDir       string
+	subPackagesInfos []*packageInfos
+	infosByFile      map[string]infosFile
 }
 
-const constPrivateToFileComment = "//!PARANO__PRIVATE_TO_FILE"
-const constExaustiveFilling = "//!PARANO__EXHAUSTIVE_FILLING"
-const constLocalPrivateStuffLineRegexp1 = "\n//\\s+LOCAL PRIVATE STUFF\\s+\n"
-const constLocalPrivateStuffLineRegexp2 = "\n//\\s+PRIVATE LOCAL STUFF\\s+\n"
+type infosFile struct {
+	packageName              string
+	rootNode                 *node.Node
+	featurePrivateToFile     *featurePrivateToFile
+	featureExhaustiveFilling *featureExhaustiveFilling
+}
 
 var colorRed = "\033[31m"
 var colorDefault = "\033[39m"
 
 var verbose bool
 var noColor bool
+var debugInfo = false
 
 //------------------------------------------------------------------------------
 
@@ -50,6 +50,7 @@ func main() {
 	verbose = *verbosePtr
 
 	debugInfo = *debug
+	node.DebugInfo = debugInfo
 
 	if *pkg != "" {
 		*pkgDir = os.Getenv("GOPATH") + "/src/" + *pkg
@@ -60,12 +61,33 @@ func main() {
 		panic("Folder " + *pkgDir + " does not exist.")
 	}
 
-	recurseDir(*pkgDir)
+	var rootPkg = recurseDir(*pkgDir)
+
+	var mInfosByPackageName = make(map[string]*packageInfos)
+	processPkgRecursiveAndMakeMap(rootPkg, mInfosByPackageName)
+
+	if verbose {
+		fmt.Println("\"Fourth\" pass")
+	}
+
+	processPkgAgain(mInfosByPackageName)
 }
 
 //------------------------------------------------------------------------------
 
-func recurseDir(pkgDir string) {
+func processPkgRecursiveAndMakeMap(pkgInfos *packageInfos, mInfosByPackageName map[string]*packageInfos) {
+	mInfosByPackageName[pkgInfos.packageName] = pkgInfos
+	for _, subPackageInfos := range pkgInfos.subPackagesInfos {
+		processPkgRecursiveAndMakeMap(subPackageInfos, mInfosByPackageName)
+	}
+}
+
+//------------------------------------------------------------------------------
+
+func recurseDir(pkgDir string) *packageInfos {
+
+	var subPackagesInfos = make([]*packageInfos, 0)
+
 	var items, err = filepath.Glob(pkgDir + "/*")
 	if err != nil {
 		panic(err)
@@ -80,7 +102,7 @@ func recurseDir(pkgDir string) {
 				panic("File does not exist: " + item)
 			}
 			if info.IsDir() {
-				recurseDir(item)
+				subPackagesInfos = append(subPackagesInfos, recurseDir(item))
 			}
 		}
 	}
@@ -91,14 +113,25 @@ func recurseDir(pkgDir string) {
 		fmt.Println("Processing package: " + pkgDir)
 	}
 
-	processPkgFiles(srcFiles)
+	var infosByFile = processPkgFiles(srcFiles)
+	var packageName string // note: remains empty string if no source files
+	for _, infosFile := range infosByFile {
+		packageName = infosFile.packageName
+		break
+	}
+	return &packageInfos{
+		packageName:      packageName,
+		packageDir:       pkgDir,
+		subPackagesInfos: subPackagesInfos,
+		infosByFile:      infosByFile,
+	}
 }
 
 //------------------------------------------------------------------------------
 
-func processPkgFiles(files []string) {
+func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 
-	var infosByFile = make(map[string]infosFile)
+	infosByFile = make(map[string]infosFile)
 	for _, filename := range files {
 		infosByFile[filename] = processFile(filename)
 	}
@@ -116,49 +149,12 @@ func processPkgFiles(files []string) {
 	// third pass => check
 
 	var failedAtLeastOnce = false
-	for filename1, infosFile := range infosByFile {
-		infosFile.rootNode.visit(func(n *node) {
-			if n.name != "" {
-				for filename2, infosFile2 := range infosByFile {
-
-					//----
-					// privateToFileDecl
-
-					if filename1 != filename2 {
-						if _, ok := infosFile2.privateToFileDecl[n.name]; ok {
-							notPass(fmt.Sprintf("cannot use %s in %s, declared as private to file in %s",
-								n.name, filename1, filename2))
-							failedAtLeastOnce = true
-						}
-					}
-
-					//----
-					// exhaustiveFillingStructs
-
-					if keysStruct, ok := infosFile2.exhaustiveFillingStructs[n.name]; ok {
-						if n.father.typeStr == "CompositeLit" {
-							var keys = make(map[string]bool)
-							for _, keyValue := range n.father.children {
-								if keyValue.typeStr == "KeyValueExpr" {
-									if keyValue.children[0].typeStr == "Ident" {
-										keys[keyValue.children[0].name] = true
-									}
-								}
-							}
-							var missingKeys = make([]string, 0)
-							for key := range keysStruct {
-								if _, ok := keys[key]; !ok {
-									missingKeys = append(missingKeys, key)
-								}
-							}
-
-							if len(missingKeys) > 0 {
-								notPass(fmt.Sprintf("missing key(s) %s in declaration of %s, type declared with %s in %s",
-									strings.Join(missingKeys, ", "), n.name, constExaustiveFilling, filename2))
-								failedAtLeastOnce = true
-							}
-						}
-					}
+	for filename1, fileInfos := range infosByFile { // for each input file
+		fileInfos.rootNode.Visit(func(n *node.Node) {
+			if n.Name != "" {
+				for filename2, fileInfos2 := range infosByFile { // for each file
+					failedAtLeastOnce = paranoPrivateToFileCheck(n, fileInfos2.featurePrivateToFile, filename1, filename2) && failedAtLeastOnce
+					failedAtLeastOnce = paranoExhaustiveFillingCheck(n, fileInfos2.packageName, fileInfos2.featureExhaustiveFilling, filename1, filename2) && failedAtLeastOnce
 				}
 			}
 		})
@@ -167,6 +163,8 @@ func processPkgFiles(files []string) {
 		fmt.Println("Stopping program now.")
 		os.Exit(1)
 	}
+
+	return
 }
 
 //------------------------------------------------------------------------------
@@ -182,114 +180,42 @@ func processFile(filename string) infosFile {
 	//----
 	// first pass => load file and get nodes
 
-	var locationLocalPrivateStuff = -1
-
-	var rootNode = readFile(filename)
-
-	var loc = regexp.MustCompile(constLocalPrivateStuffLineRegexp1).FindIndex(fileBytes)
-	if len(loc) > 0 {
-		locationLocalPrivateStuff = loc[1]
-	} else {
-		loc = regexp.MustCompile(constLocalPrivateStuffLineRegexp2).FindIndex(fileBytes)
-		if len(loc) > 0 {
-			locationLocalPrivateStuff = loc[1]
-		}
-	}
-	if debugInfo {
-		fmt.Printf("  locationLocalPrivateStuff: %d\n", locationLocalPrivateStuff)
-	}
+	var rootNode, fileBytes = node.ReadFile(filename)
 
 	//----
-	// second pass => get privateToFileDecl/exhaustiveFillingStructs
+	// init
 
-	var privateToFileDecl = make(map[string]bool)
-	var exhaustiveFillingStructs = make(map[string]map[string]bool)
+	var featurePrivateToFile = paranoPrivateToFileInit(fileBytes)
+	var featureExhaustiveFilling = paranoExhaustiveFillingInit()
 
-	rootNode.visit(func(n *node) {
-		if n.typeStr == "Ident" && n.depthLevel <= 4 && locationLocalPrivateStuff != -1 && n.bytesIndexBegin > locationLocalPrivateStuff {
-			privateToFileDecl[n.name] = true
+	//----
+	// second pass => gather informations about nodes of this file
+
+	var packageName string
+	rootNode.Visit(func(n *node.Node) {
+		if debugInfo {
+			fmt.Printf("==> ")
+			n.Display()
 		}
-		if isCommentGroupWithComment(n, constPrivateToFileComment) && n.father != nil {
-			if n.father.typeStr == "GenDecl" {
-				for _, n2 := range n.father.children {
-					if n2.typeStr == "ValueSpec" {
-						if len(n2.children) >= 2 {
-							var name = n2.children[0].bytes
-							if debugInfo {
-								fmt.Printf("CCCC >=%s <=\n", name)
-							}
-							privateToFileDecl[name] = true
-							break
-						}
-					}
-				}
-			} else if n.father.typeStr == "FuncDecl" {
-				if debugInfo {
-					fmt.Printf("AAAA >=%s %s<=\n", n.father.name, n.father.typeStr)
-				}
-				privateToFileDecl[n.father.name] = true
-			} else {
-				var nextNode = n.nextNode()
-				if nextNode != nil && nextNode.typeStr == "TypeSpec" {
-					if debugInfo {
-						fmt.Printf("BBBB >=%s %s<=\n", nextNode.name, nextNode.typeStr)
-					}
-					privateToFileDecl[nextNode.name] = true
-				}
-			}
+		if n.TypeStr == "Ident" && n.Father.TypeStr == "File" {
+			packageName = n.Name
 		}
-		if isCommentGroupWithComment(n, constExaustiveFilling) && n.father != nil {
-			var nextNode = n.nextNode()
-			if nextNode != nil && nextNode.typeStr == "TypeSpec" {
-				if debugInfo {
-					fmt.Printf("ZZZZ >=%s %s<=\n", nextNode.name, nextNode.typeStr)
-				}
-				var keys = make(map[string]bool)
-				for _, child1 := range nextNode.children {
-					if child1.typeStr == "StructType" {
-						for _, child2 := range child1.children {
-							if child2.typeStr == "FieldList" {
-								for _, field := range child2.children {
-									if field.children[0].typeStr == "Ident" {
-										keys[field.children[0].name] = true
-									}
-								}
-							}
-						}
-					}
-				}
-				exhaustiveFillingStructs[nextNode.name] = keys
-			}
-		}
+		paranoPrivateToFileVisit(n, featurePrivateToFile)
+		paranoExhaustiveFillingVisit(n, featureExhaustiveFilling)
 	})
 
-	if debugInfo {
-		fmt.Printf("\n\n\nprivateToFileDecl: %+v\n", privateToFileDecl)
-		fmt.Printf("\n\n\nexhaustiveFillingStructs: %+v\n", exhaustiveFillingStructs)
-	}
-
-	return infosFile{
+	var infosf = infosFile{
+		packageName:              packageName,
 		rootNode:                 rootNode,
-		privateToFileDecl:        privateToFileDecl,
-		exhaustiveFillingStructs: exhaustiveFillingStructs,
+		featurePrivateToFile:     featurePrivateToFile,
+		featureExhaustiveFilling: featureExhaustiveFilling,
 	}
-}
 
-func isCommentGroupWithComment(n *node, comment string) bool {
-	if n.typeStr == "CommentGroup" {
-		for _, child := range n.children {
-			if child.bytes == comment {
-				return true
-			}
-		}
+	if debugInfo {
+		fmt.Printf("\n\n\n%+v\n", infosf)
 	}
-	return false
-}
 
-//------------------------------------------------------------------------------
-
-func notPass(message string) {
-	fmt.Printf("%sDO NOT PASS%s: %s\n", colorRed, colorDefault, message)
+	return infosf
 }
 
 //------------------------------------------------------------------------------
@@ -297,6 +223,16 @@ func notPass(message string) {
 func usage() {
 	fmt.Println("usage: " + os.Args[0] + " [ -dir <dir> | -pkg <pkg> ]")
 	os.Exit(1)
+}
+
+//------------------------------------------------------------------------------
+
+func processPkgAgain(mInfosByPackageName map[string]*packageInfos) {
+
+	//----
+	// fourth pass => check
+
+	paranoExhaustiveFillingCheckGlobal(mInfosByPackageName)
 }
 
 //------------------------------------------------------------------------------
