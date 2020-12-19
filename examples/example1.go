@@ -1,5 +1,7 @@
 package main
 
+import "./examplesub"
+
 //!PARANO__PRIVATE_TO_FILE
 //!PARANO__EXHAUSTIVE_FILLING
 type testType1 struct {
@@ -10,6 +12,9 @@ type testType1 struct {
 }
 
 func main() {
+
+	var tts = examplesub.TestTypeSub{Foo1: 1}
+	tts.Foo2 = 2
 
 	// test exhaustive filling
 	var testNokFill = testType1{
