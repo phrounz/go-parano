@@ -39,23 +39,23 @@ var testNokFill = testType1{
 
 **How to test**
 
-You can test with the source code itself:
+You can test with:
 
 ```
 cd go-parano
-go build -o go-parano.out ./src/*
-./go-parano.out -dir examples/
+go build -o go-parano.out ./src/ && ./go-parano.out -dir examples/
 ```
 
 It should display something like:
 ```
-DO NOT PASS: missing key(s) foo3, foo4 in declaration of testType1, declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
-DO NOT PASS: missing key(s) foo3, foo4 in declaration of testType1, type declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
+DO NOT PASS: missing field(s) foo3, foo4 in declaration of testType1, declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
+DO NOT PASS: missing field(s) foo3, foo4 in declaration of testType1, type declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
 DO NOT PASS: cannot use testVarNotOkay in examples/example1.go, declared as private to file in examples/example2.go
 DO NOT PASS: cannot use testType2 in examples/example1.go, declared as private to file in examples/example2.go
 DO NOT PASS: cannot use testType3 in examples/example1.go, declared as private to file in examples/example2.go
 DO NOT PASS: cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
 DO NOT PASS: cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
 DO NOT PASS: cannot use localPrivateStuffTest in examples/example1.go, declared as private to file in examples/example2.go
+DO NOT PASS: missing fields(s) Foo2 in declaration "examplesub.TestTypeSub{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in ???
 ```
 
