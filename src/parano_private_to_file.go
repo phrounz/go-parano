@@ -50,7 +50,9 @@ func paranoPrivateToFileVisit(n *node.Node, feat *featurePrivateToFile) {
 
 	if n.TypeStr == "Ident" && n.DepthLevel <= 4 && feat.locationLocalPrivateStuff != -1 && n.BytesIndexBegin > feat.locationLocalPrivateStuff {
 		feat.privateToFileDecl[n.Name] = true
-		fmt.Printf("#############: %s\n", n.Name)
+		if debugInfo {
+			fmt.Printf("IIII >=%s <=\n", n.Name)
+		}
 	}
 	if isCommentGroupWithComment(n, constPrivateToFileComment) && n.Father != nil {
 		if n.Father.TypeStr == "GenDecl" {
