@@ -10,8 +10,8 @@ import (
 //------------------------------------------------------------------------------
 
 const constPrivateToFileComment = "//!PARANO__PRIVATE_TO_FILE"
-const constLocalPrivateStuffLineRegexp1 = "\n//\\s+LOCAL PRIVATE STUFF\\s+\n"
-const constLocalPrivateStuffLineRegexp2 = "\n//\\s+PRIVATE LOCAL STUFF\\s+\n"
+const constLocalPrivateStuffLineRegexp1 = "\\n//\\s*LOCAL PRIVATE STUFF\\s*\\n"
+const constLocalPrivateStuffLineRegexp2 = "\\n//\\s*PRIVATE LOCAL STUFF\\s*\\n"
 
 //------------------------------------------------------------------------------
 
@@ -26,6 +26,7 @@ func paranoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
 
 	var locationLocalPrivateStuff = -1
 	var loc = regexp.MustCompile(constLocalPrivateStuffLineRegexp1).FindIndex(fileBytes)
+	//fmt.Printf("############ %+v %s %s ###################\n", loc, constLocalPrivateStuffLineRegexp1, fileBytes)
 	if len(loc) > 0 {
 		locationLocalPrivateStuff = loc[1]
 	} else {
@@ -49,6 +50,7 @@ func paranoPrivateToFileVisit(n *node.Node, feat *featurePrivateToFile) {
 
 	if n.TypeStr == "Ident" && n.DepthLevel <= 4 && feat.locationLocalPrivateStuff != -1 && n.BytesIndexBegin > feat.locationLocalPrivateStuff {
 		feat.privateToFileDecl[n.Name] = true
+		fmt.Printf("#############: %s\n", n.Name)
 	}
 	if isCommentGroupWithComment(n, constPrivateToFileComment) && n.Father != nil {
 		if n.Father.TypeStr == "GenDecl" {
