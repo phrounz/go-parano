@@ -88,3 +88,16 @@ func (n *Node) Visit(fnCall func(*Node)) {
 }
 
 //------------------------------------------------------------------------------
+
+func (n *Node) IsCommentGroupWithComment(comment string) bool {
+	if n.TypeStr == "CommentGroup" {
+		for _, child := range n.Children {
+			if child.Bytes == comment {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+//------------------------------------------------------------------------------

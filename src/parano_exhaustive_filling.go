@@ -29,7 +29,7 @@ func paranoExhaustiveFillingInit() *featureExhaustiveFilling {
 
 func paranoExhaustiveFillingVisit(n *node.Node, featureExhaustiveFilling *featureExhaustiveFilling) {
 
-	if isCommentGroupWithComment(n, constExaustiveFilling) && n.Father != nil {
+	if n.IsCommentGroupWithComment(constExaustiveFilling) && n.Father != nil {
 		var nextNode = n.NextNode()
 		if nextNode != nil && nextNode.TypeStr == "TypeSpec" {
 			if debugInfo {

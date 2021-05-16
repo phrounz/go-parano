@@ -1,6 +1,8 @@
 package main
 
-import "./examplesub"
+import (
+	"./examplesub"
+)
 
 //!PARANO__PRIVATE_TO_FILE
 //!PARANO__EXHAUSTIVE_FILLING
@@ -41,4 +43,7 @@ func main() {
 	testFunctionNotOkay()
 
 	localPrivateStuffTest = true
+
+	examplesub.Query("SELECT \"\\1\", el.foo FROM elements el")
+	examplesub.Query("SELECT FROM JOIN \"1\"")
 }

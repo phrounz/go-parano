@@ -5,3 +5,7 @@ type TestTypeSub struct {
 	Foo1 int
 	Foo2 int
 }
+
+func Query(str string) {
+
+}

@@ -5,7 +5,7 @@ It scans specific keywords in comments and alerts if something is not in agreeme
 
 WARNING still in development.
 
-**Feature: private to file**
+## Feature: private to file
 
 The first feature is a _private to file_ marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
 
@@ -22,7 +22,7 @@ Also everything below the line:
 ```
 until the end of file, is also _private to file_.
 
-**Feature: struct exhaustive filling**
+## Feature: struct exhaustive filling
 
 The second feature is a way to check that a structure is completely filled.
 ```
@@ -37,13 +37,22 @@ var testNokFill = testType1{
 }
 ```
 
-**How to test**
+## Feature: SQL linter
+
+This is a way to check that your SQL queries are correct.
+
+## How to test
 
 You can test with:
 
+Without the SQL linter feature:
 ```
-cd go-parano
 go build -o go-parano.out ./src/ && ./go-parano.out -dir examples/
+```
+
+With the SQL linter feature (installs phpmyadmin/sql-parser dependency in ./vendor using composer):
+```
+sh build_and_test.sh
 ```
 
 It should display something like:
