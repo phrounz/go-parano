@@ -119,13 +119,16 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 		var nodeCasted = nodeObj.(*ast.BasicLit)
 		switch nodeCasted.Kind {
 		case token.STRING:
-			var strNoQuotes = (nodeCasted.Value[1 : len(nodeCasted.Value)-1]) // remove begin/end quotes
-			var parts1 = strings.Split(strNoQuotes, "\\\\")                   // replace escaped characters
-			var parts2 []string
-			for _, part := range parts1 {
-				parts2 = append(parts2, strings.Replace(part, "\\", "", -1)) // replace escaped characters
+			var useQuotes = (nodeCasted.Value[0] == '"')             // false if '`'
+			n.Name = (nodeCasted.Value[1 : len(nodeCasted.Value)-1]) // remove begin/end quotes '"' or '`'
+			if useQuotes {
+				var parts1 = strings.Split(n.Name, "\\\\") // replace escaped characters
+				var parts2 []string
+				for _, part := range parts1 {
+					parts2 = append(parts2, strings.Replace(part, "\\", "", -1)) // replace escaped characters
+				}
+				n.Name = strings.Join(parts2, "\\")
 			}
-			n.Name = strings.Join(parts2, "\\")
 		}
 		n.TypeStr = "BasicLit"
 		// for _, spec := range d.Specs {

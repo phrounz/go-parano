@@ -8,9 +8,29 @@ import (
 
 //------------------------------------------------------------------------------
 
+func inSlice(str string, s []string) bool {
+	for _, strs := range s {
+		if str == strs {
+			return true
+		}
+	}
+	return false
+}
+
+//------------------------------------------------------------------------------
+
 func notPass(message string) {
 	fmt.Printf("%sDO NOT PASS%s: %s\n", colorRed, colorDefault, message)
+	exitCode = 2
 }
+
+//------------------------------------------------------------------------------
+
+func warn(message string) {
+	fmt.Printf("%sWARNING%s: %s\n", colorOrange, colorDefault, message)
+}
+
+//------------------------------------------------------------------------------
 
 func runCmdWithStdin(stdinStr string, cmdName string) (cmdOutput string, exitCode int) {
 	//fmt.Printf("%s %s\n", stdinStr, cmdName)

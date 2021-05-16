@@ -6,6 +6,10 @@ type TestTypeSub struct {
 	Foo2 int
 }
 
-func Query(str string) {
+func Query(whatever bool, str string, arg1 bool, arg2 string) [][]interface{} {
+	return [][]interface{}{}
+}
+
+func QueryNoAnswer(str string) {
 
 }

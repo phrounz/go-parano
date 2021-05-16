@@ -44,6 +44,12 @@ func main() {
 
 	localPrivateStuffTest = true
 
-	examplesub.Query("SELECT \"\\1\", el.foo FROM elements el")
-	examplesub.Query("SELECT FROM JOIN \"1\"")
+	var _ = examplesub.Query(true, "SELECT \"\\1\", el.foo "+
+		"FROM elements "+` el `+ // +strconv.Itoa(testOkFill.foo3)
+		"WHERE el.bar=12",
+		true,
+		"test")
+	var _ = examplesub.Query(true, "SELECT FROM JOIN \"1\"", true, "test")
+	examplesub.QueryNoAnswer("INSERT INTO elements (`foo`,`bar`) VALUES (1,2)")
+	examplesub.QueryNoAnswer("INSERT INTO elements typo mistake (`foo`,`bar`) VALUES (1,2)")
 }

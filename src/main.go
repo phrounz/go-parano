@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"./node"
 )
@@ -26,13 +27,16 @@ type infosFile struct {
 }
 
 var colorRed = "\033[31m"
+var colorOrange = "\033[33m"
 var colorDefault = "\033[39m"
 
 var verbose bool
 var noColor bool
 var debugInfo = false
-var sqlQueryFunctionName string
+var sqlQueryFunctionsNames []string
 var sqlQueryLintBinary string
+
+var exitCode = 0
 
 //------------------------------------------------------------------------------
 
@@ -47,12 +51,14 @@ func main() {
 	var pkg = flag.String("pkg", "", "source package")
 	var verbosePtr = flag.Bool("v", false, "verbose info")
 	var debug = flag.Bool("debug", false, "debug info")
-	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "SQL query function name")
+	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "SQL query function name (you may provide several, separated by comma)")
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
 	flag.Parse()
 	noColor = *noColorPtr
 	verbose = *verbosePtr
-	sqlQueryFunctionName = *sqlQueryFunctionNamePtr
+	if *sqlQueryFunctionNamePtr != "" {
+		sqlQueryFunctionsNames = strings.Split(*sqlQueryFunctionNamePtr, ",")
+	}
 	sqlQueryLintBinary = *sqlQueryLintBinaryPtr
 
 	debugInfo = *debug
@@ -77,6 +83,8 @@ func main() {
 	}
 
 	processPkgAgain(mInfosByPackageName)
+
+	os.Exit(exitCode)
 }
 
 //------------------------------------------------------------------------------
@@ -148,6 +156,7 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 
 	if noColor {
 		colorRed = ""
+		colorOrange = ""
 		colorDefault = ""
 	}
 
@@ -157,8 +166,8 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 	var failedAtLeastOnce = false
 	for filename1, fileInfos := range infosByFile { // for each input file
 		fileInfos.rootNode.Visit(func(n *node.Node) {
-			if sqlQueryFunctionName != "" {
-				failedAtLeastOnce = paranoSqllintVisit(n, sqlQueryFunctionName, filename1) && failedAtLeastOnce
+			if len(sqlQueryFunctionsNames) > 0 {
+				failedAtLeastOnce = paranoSqllintVisit(n, sqlQueryFunctionsNames, filename1) && failedAtLeastOnce
 			}
 			if n.Name != "" {
 				for filename2, fileInfos2 := range infosByFile { // for each file
