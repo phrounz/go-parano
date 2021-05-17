@@ -4,9 +4,9 @@
 package node
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
+	"reflect"
 	"strings"
 )
 
@@ -59,59 +59,33 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 
 	v.node.Children = append(v.node.Children, n)
 
-	if DebugInfo {
-		fmt.Printf("%s%T [", strings.Repeat("\t", n.DepthLevel), nodeObj)
-		for i, b := range n.Bytes {
-			if b == '\n' {
-				if i < len(n.Bytes) {
-					fmt.Printf("[...]")
-				}
-				break
-			}
-			fmt.Printf("%c", b)
-		}
-		fmt.Printf("]\n")
-	}
+	// if DebugInfo {
+	// 	var line = ""
+	// 	line += fmt.Sprintf("%s%T [", strings.Repeat("\t", n.DepthLevel), nodeObj)
+	// 	for i, b := range n.Bytes {
+	// 		if b == '\n' {
+	// 			if i < len(n.Bytes) {
+	// 				line += fmt.Sprintf("[...]")
+	// 			}
+	// 			break
+	// 		}
+	// 		line += fmt.Sprintf("%c", b)
+	// 	}
+	// 	line += fmt.Sprintf("]")
+	// 	util.DebugPrintf(line)
+	// }
+
+	n.TypeStr = reflect.TypeOf(nodeObj).Elem().Name()
+	//fmt.Println(name)
 
 	switch d := nodeObj.(type) {
-	case *ast.File:
-		n.TypeStr = "File"
 	case *ast.CallExpr:
-		var i = strings.Index(n.Bytes, "(")
-		n.Name = n.Bytes[0:i]
-		n.TypeStr = "CallExpr"
-	case *ast.CommentGroup:
-		n.TypeStr = "CommentGroup"
-	case *ast.StructType:
-		n.TypeStr = "StructType"
-	case *ast.FieldList:
-		n.TypeStr = "FieldList"
-	case *ast.Field:
-		n.TypeStr = "Field"
-	case *ast.ValueSpec:
-		n.TypeStr = "ValueSpec"
-	case *ast.AssignStmt:
-		n.TypeStr = "AssignStmt"
-	case *ast.IfStmt:
-		n.TypeStr = "IfStmt"
-	case *ast.BinaryExpr:
-		n.TypeStr = "BinaryExpr"
-	case *ast.KeyValueExpr:
-		n.TypeStr = "KeyValueExpr"
-	case *ast.CompositeLit:
-		n.TypeStr = "CompositeLit"
-	case *ast.RangeStmt:
-		n.TypeStr = "RangeStmt"
-	case *ast.SelectorExpr:
-		n.TypeStr = "SelectorExpr"
+		n.Name = n.Bytes[0:strings.Index(n.Bytes, "(")]
 	case *ast.FuncDecl:
 		n.Name = d.Name.Name
-		n.TypeStr = "FuncDecl"
 	case *ast.TypeSpec:
 		n.Name = d.Name.Name
-		n.TypeStr = "TypeSpec"
 	case *ast.GenDecl:
-		n.TypeStr = "GenDecl"
 		if d.Tok != token.VAR {
 			return v
 		}

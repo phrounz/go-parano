@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"./node"
+	"./util"
 )
 
 //------------------------------------------------------------------------------
@@ -26,17 +27,12 @@ type infosFile struct {
 	featureExhaustiveFilling *featureExhaustiveFilling
 }
 
-var colorRed = "\033[31m"
-var colorOrange = "\033[33m"
-var colorDefault = "\033[39m"
-
 var verbose bool
 var noColor bool
 var debugInfo = false
 var sqlQueryFunctionsNames []string
 var sqlQueryLintBinary string
-
-var exitCode = 0
+var sqlQueryAllInOne bool
 
 //------------------------------------------------------------------------------
 
@@ -53,6 +49,7 @@ func main() {
 	var debug = flag.Bool("debug", false, "debug info")
 	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "SQL query function name (you may provide several, separated by comma)")
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
+	var sqlQueryAllInOnePtr = flag.Bool("sql-query-all-in-one", false, "If set, run the SQL query lint program once with all the queries as argument, instead of running once by query.")
 	flag.Parse()
 	noColor = *noColorPtr
 	verbose = *verbosePtr
@@ -60,6 +57,7 @@ func main() {
 		sqlQueryFunctionsNames = strings.Split(*sqlQueryFunctionNamePtr, ",")
 	}
 	sqlQueryLintBinary = *sqlQueryLintBinaryPtr
+	sqlQueryAllInOne = *sqlQueryAllInOnePtr
 
 	debugInfo = *debug
 	node.DebugInfo = debugInfo
@@ -75,16 +73,18 @@ func main() {
 
 	var rootPkg = recurseDir(*pkgDir)
 
+	paranoSqllintCheckQueries()
+
 	var mInfosByPackageName = make(map[string]*packageInfos)
 	processPkgRecursiveAndMakeMap(rootPkg, mInfosByPackageName)
 
 	if verbose {
-		fmt.Println("\"Fourth\" pass")
+		util.Info("\"Fourth\" pass")
 	}
 
 	processPkgAgain(mInfosByPackageName)
 
-	os.Exit(exitCode)
+	os.Exit(util.GetExitCode())
 }
 
 //------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ func recurseDir(pkgDir string) *packageInfos {
 	// 	fmt.Println("WARNING: no sources files in " + pkgDir)
 	// }
 	if verbose {
-		fmt.Println("Processing package: " + pkgDir)
+		util.Info("Processing package: %s", pkgDir)
 	}
 
 	var infosByFile = processPkgFiles(srcFiles)
@@ -151,13 +151,11 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 	}
 
 	if debugInfo || verbose {
-		fmt.Println("  Checking ...")
+		util.Info("  Checking ...")
 	}
 
 	if noColor {
-		colorRed = ""
-		colorOrange = ""
-		colorDefault = ""
+		util.DisableColor()
 	}
 
 	//----
@@ -189,10 +187,10 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 
 func processFile(filename string) infosFile {
 	if debugInfo {
-		fmt.Println("===============================")
+		util.DebugPrintf("===============================> %s", filepath.Base(filename))
 	}
 	if verbose {
-		fmt.Println("  Scanning: " + filepath.Base(filename) + " ...")
+		util.Info("  Scanning: " + filepath.Base(filename) + " ...")
 	}
 
 	//----
@@ -212,7 +210,6 @@ func processFile(filename string) infosFile {
 	var packageName string
 	rootNode.Visit(func(n *node.Node) {
 		if debugInfo {
-			fmt.Printf("==> ")
 			n.Display()
 		}
 		if n.TypeStr == "Ident" && n.Father.TypeStr == "File" {
@@ -229,9 +226,7 @@ func processFile(filename string) infosFile {
 		featureExhaustiveFilling: featureExhaustiveFilling,
 	}
 
-	if debugInfo {
-		fmt.Printf("\n\n\n%+v\n", infosf)
-	}
+	//if debugInfo { util.DebugPrintf("\n\n\n%+v\n", infosf) }
 
 	return infosf
 }

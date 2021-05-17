@@ -51,5 +51,16 @@ func main() {
 		"test")
 	var _ = examplesub.Query(true, "SELECT FROM JOIN \"1\"", true, "test")
 	examplesub.QueryNoAnswer("INSERT INTO elements (`foo`,`bar`) VALUES (1,2)")
-	examplesub.QueryNoAnswer("INSERT INTO elements typo mistake (`foo`,`bar`) VALUES (1,2)")
+	examplesub.QueryNoAnswer("INSERT INTO elements typo mistake (`foo`,`bar`) VALUES (1,2)") //comment
+	foo()
+	examplesub.Query(true, "SELECTYYYY", //!PARANO__IGNORE_CHECK_SQL_QUERY
+		true, "test")
+	examplesub.QueryNoAnswer( //!PARANO__IGNORE_CHECK_SQL_QUERY
+		"SELECTYYYY")
+	examplesub.Query(true, "SELECT * FROM "+string("cause warnings"), true, "test")
+}
+
+//!PARANO__IGNORE_CHECK_SQL_QUERIES
+func foo() {
+	examplesub.QueryNoAnswer("SELECTZZZZ")
 }

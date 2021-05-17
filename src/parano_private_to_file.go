@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 
 	"./node"
+	"./util"
 )
 
 //------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ func paranoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
 		}
 	}
 	if debugInfo {
-		fmt.Printf("  locationLocalPrivateStuff: %d\n", locationLocalPrivateStuff)
+		util.DebugPrintf("  locationLocalPrivateStuff: %d", locationLocalPrivateStuff)
 	}
 	return &featurePrivateToFile{
 		locationLocalPrivateStuff: locationLocalPrivateStuff,
@@ -57,7 +57,7 @@ func paranoPrivateToFileVisit(n *node.Node, feat *featurePrivateToFile) {
 					if len(n2.Children) >= 2 {
 						var name = n2.Children[0].Bytes
 						if debugInfo {
-							fmt.Printf("CCCC >=%s <=\n", name)
+							util.DebugPrintf("....... PrivateToFile: ValueSpec: >=%s <=", name)
 						}
 						feat.privateToFileDecl[name] = true
 						break
@@ -66,14 +66,14 @@ func paranoPrivateToFileVisit(n *node.Node, feat *featurePrivateToFile) {
 			}
 		} else if n.Father.TypeStr == "FuncDecl" {
 			if debugInfo {
-				fmt.Printf("AAAA >=%s %s<=\n", n.Father.Name, n.Father.TypeStr)
+				util.DebugPrintf("....... PrivateToFile: FuncDecl: >=%s %s<=", n.Father.Name, n.Father.TypeStr)
 			}
 			feat.privateToFileDecl[n.Father.Name] = true
 		} else {
 			var nextNode = n.NextNode()
 			if nextNode != nil && nextNode.TypeStr == "TypeSpec" {
 				if debugInfo {
-					fmt.Printf("BBBB >=%s %s<=\n", nextNode.Name, nextNode.TypeStr)
+					util.DebugPrintf("....... PrivateToFile: TypeSpec: >=%s %s<=", nextNode.Name, nextNode.TypeStr)
 				}
 				feat.privateToFileDecl[nextNode.Name] = true
 			}
@@ -87,8 +87,7 @@ func paranoPrivateToFileCheck(n *node.Node, featurePrivateToFile *featurePrivate
 
 	if filename1 != filename2 {
 		if _, ok := featurePrivateToFile.privateToFileDecl[n.Name]; ok {
-			notPass(fmt.Sprintf("cannot use %s in %s, declared as private to file in %s",
-				n.Name, filename1, filename2))
+			util.NotPass("Cannot use %s in %s, declared as private to file in %s", n.Name, filename1, filename2)
 			failedAtLeastOnce = true
 		}
 	}

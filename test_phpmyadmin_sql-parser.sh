@@ -6,6 +6,6 @@ if [ ! -d vendor/phpmyadmin/sql-parser/ ];then
   composer require phpmyadmin/sql-parser
 fi
 
-go build -o go-parano.out ./src/ && ./go-parano.out -dir ./examples/ \
+./go-parano.out -dir ./examples/ \
   -sql-query-func-name examplesub.Query,examplesub.QueryNoAnswer \
   -sql-query-lint-binary "vendor/phpmyadmin/sql-parser/bin/lint-query" # "./sql-lint-linux"

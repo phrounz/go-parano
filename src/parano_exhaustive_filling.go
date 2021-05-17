@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"./node"
+	"./util"
 )
 
 //------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ func paranoExhaustiveFillingVisit(n *node.Node, featureExhaustiveFilling *featur
 		var nextNode = n.NextNode()
 		if nextNode != nil && nextNode.TypeStr == "TypeSpec" {
 			if debugInfo {
-				fmt.Printf("ZZZZ >=%s %s<=\n", nextNode.Name, nextNode.TypeStr)
+				util.DebugPrintf("....... ExhaustiveFilling: >=%s %s<=", nextNode.Name, nextNode.TypeStr)
 			}
 			var keys = make(map[string]bool)
 			for _, child1 := range nextNode.Children {
@@ -57,7 +57,6 @@ func paranoExhaustiveFillingVisit(n *node.Node, featureExhaustiveFilling *featur
 //------------------------------------------------------------------------------
 
 func paranoExhaustiveFillingCheck(n *node.Node, packageName string, featureExhaustiveFilling *featureExhaustiveFilling, filename1 string, filename2 string) (failedAtLeastOnce bool) {
-
 	if fieldsStruct, ok := featureExhaustiveFilling.exhaustiveFillingStructs[n.Name]; ok {
 		failedAtLeastOnce = commonCheckExhaustiveFilling(n, fieldsStruct, filename1, filename2)
 	}
@@ -111,8 +110,8 @@ func commonCheckExhaustiveFilling(n *node.Node, fieldsStruct map[string]bool, fi
 		}
 
 		if len(missingFields) > 0 {
-			notPass(fmt.Sprintf("missing fields(s) %s in declaration \"%s{}\" in %s, type declared with %s in %s",
-				strings.Join(missingFields, ", "), n.Bytes, filename1, constExaustiveFilling, filename2))
+			util.NotPass("missing fields(s) %s in declaration \"%s{}\" in %s, type declared with %s in %s",
+				strings.Join(missingFields, ", "), n.Bytes, filename1, constExaustiveFilling, filename2)
 			failedAtLeastOnce = true
 		}
 	}

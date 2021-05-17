@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"io/ioutil"
 	"strings"
+
+	"../util"
 )
 
 //------------------------------------------------------------------------------
@@ -62,20 +64,22 @@ func (n *Node) NextNode() *Node {
 //------------------------------------------------------------------------------
 
 func (n *Node) Display() {
-	fmt.Printf("%s%s [", strings.Repeat("\t", n.DepthLevel), n.TypeStr)
+	var line = ""
+	line += fmt.Sprintf("%s%s [", strings.Repeat("\t", n.DepthLevel), n.TypeStr)
 	if n.Name != "" {
-		fmt.Printf("[name=%s]", n.Name)
+		line += fmt.Sprintf("[name=%s]", n.Name)
 	}
 	for i, b := range n.Bytes {
 		if b == '\n' {
 			if i < len(n.Bytes) {
-				fmt.Printf("[...]")
+				line += fmt.Sprintf("[...]")
 			}
 			break
 		}
-		fmt.Printf("%c", b)
+		line += fmt.Sprintf("%c", b)
 	}
-	fmt.Printf("]\n")
+	line += fmt.Sprintf("]")
+	util.DebugPrintf(line)
 }
 
 //------------------------------------------------------------------------------
