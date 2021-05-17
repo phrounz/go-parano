@@ -30,7 +30,7 @@ type infosFile struct {
 var verbose bool
 var noColor bool
 var debugInfo = false
-var sqlQueryFunctionsNames []string
+var sqlQueryFunctionsNames util.WildcardSet
 var sqlQueryLintBinary string
 var sqlQueryAllInOne bool
 
@@ -47,14 +47,14 @@ func main() {
 	var pkg = flag.String("pkg", "", "source package")
 	var verbosePtr = flag.Bool("v", false, "verbose info")
 	var debug = flag.Bool("debug", false, "debug info")
-	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "SQL query function name (you may provide several, separated by comma)")
+	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "SQL query function name (you may provide several, separated by comma; accepts up to one wilcard character '*' by function name)")
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
 	var sqlQueryAllInOnePtr = flag.Bool("sql-query-all-in-one", false, "If set, run the SQL query lint program once with all the queries as argument, instead of running once by query.")
 	flag.Parse()
 	noColor = *noColorPtr
 	verbose = *verbosePtr
 	if *sqlQueryFunctionNamePtr != "" {
-		sqlQueryFunctionsNames = strings.Split(*sqlQueryFunctionNamePtr, ",")
+		sqlQueryFunctionsNames = util.NewWildcardSet(strings.Split(*sqlQueryFunctionNamePtr, ","))
 	}
 	sqlQueryLintBinary = *sqlQueryLintBinaryPtr
 	sqlQueryAllInOne = *sqlQueryAllInOnePtr
@@ -165,7 +165,7 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 	for filename1, fileInfos := range infosByFile { // for each input file
 		fileInfos.rootNode.Visit(func(n *node.Node) {
 			if len(sqlQueryFunctionsNames) > 0 {
-				failedAtLeastOnce = paranoSqllintVisit(n, sqlQueryFunctionsNames, filename1) && failedAtLeastOnce
+				failedAtLeastOnce = paranoSqllintVisit(n, filename1) && failedAtLeastOnce
 			}
 			if n.Name != "" {
 				for filename2, fileInfos2 := range infosByFile { // for each file

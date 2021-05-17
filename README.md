@@ -5,6 +5,47 @@ It scans specific keywords in comments and alerts if something is not in agreeme
 
 WARNING: still in development. Tested only on Linux, but there is no reason it would not work on other operating systems.
 
+## How to build and test
+
+Without the SQL linter feature:
+```
+$ go build -o go-parano.out ./src/ && ./go-parano.out -dir examples/
+```
+
+With the SQL linter feature (installs and uses phpmyadmin/sql-parser using composer):
+```
+$ go build -o go-parano.out ./src/ && sh test_phpmyadmin_sql-parser.sh
+```
+With the SQL linter feature (installs and uses sqlfluff using pip):
+```
+$ go build -o go-parano.out ./src/ && sh test_sqlfluff.sh
+```
+
+It should display something like (example with phpmyadmin/sql-parser):
+```
+INVALID: missing fields(s) foo3, foo4 in declaration "testType1{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
+INVALID: Cannot use testVarNotOkay in examples/example1.go, declared as private to file in examples/example2.go
+INVALID: Cannot use testType2 in examples/example1.go, declared as private to file in examples/example2.go
+INVALID: Cannot use testType3 in examples/example1.go, declared as private to file in examples/example2.go
+INVALID: Cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
+INVALID: Cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
+INVALID: Cannot use localPrivateStuffTest in examples/example1.go, declared as private to file in examples/example2.go
+INVALID: Invalid SQL query in examples/example1.go: SELECT FROM JOIN "1";
+INVALID:      |_ #1: An expression was expected. (near "FROM" at position 7)
+INVALID:      |_ #2: An expression was expected. (near "JOIN" at position 12)
+INVALID:      |_ 
+INVALID: Invalid SQL query in examples/example1.go: INSERT INTO elements typo mistake (`foo`,`bar`) ...
+INVALID:      |_ #1: Unexpected token. (near "typo" at position 21)
+INVALID:      |_ #2: Unexpected beginning of statement. (near "typo" at position 21)
+INVALID:      |_ #3: Unexpected beginning of statement. (near "mistake" at position 26)
+INVALID:      |_ #4: Unexpected beginning of statement. (near "`foo`" at position 35)
+INVALID:      |_ #5: Unexpected beginning of statement. (near "`bar`" at position 41)
+INVALID:      |_ #6: Unrecognized statement type. (near "VALUES" at position 48)
+INVALID:      |_ 
+WARNING: Cannot fully check query in file 'examples/example1.go': SELECT * FROM ???
+INVALID: missing fields(s) Foo2 in declaration "examplesub.TestTypeSub{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in ???
+```
+
 ## Feature: private to file
 
 The first feature is a _private to file_ marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
@@ -86,48 +127,5 @@ for example:
 examplesub.Query( //!PARANO__IGNORE_CHECK_SQL_QUERY
 	"SELECTYYYY")
 }
-```
-
-## How to test
-
-You can test with:
-
-Without the SQL linter feature:
-```
-$ go build -o go-parano.out ./src/ && ./go-parano.out -dir examples/
-```
-
-With the SQL linter feature:
-```
-(installs and uses phpmyadmin/sql-parser using composer)
-$ go build -o go-parano.out ./src/ && sh test_phpmyadmin_sql-parser.sh
-
-or (installs and uses sqlfluff using pip)
-$ go build -o go-parano.out ./src/ && sh test_sqlfluff.sh
-```
-
-It should display something like (example with phpmyadmin/sql-parser):
-```
-INVALID: missing fields(s) foo3, foo4 in declaration "testType1{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
-INVALID: Cannot use testVarNotOkay in examples/example1.go, declared as private to file in examples/example2.go
-INVALID: Cannot use testType2 in examples/example1.go, declared as private to file in examples/example2.go
-INVALID: Cannot use testType3 in examples/example1.go, declared as private to file in examples/example2.go
-INVALID: Cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
-INVALID: Cannot use testFunctionNotOkay in examples/example1.go, declared as private to file in examples/example2.go
-INVALID: Cannot use localPrivateStuffTest in examples/example1.go, declared as private to file in examples/example2.go
-INVALID: Invalid SQL query in examples/example1.go: SELECT FROM JOIN "1";
-INVALID:      |_ #1: An expression was expected. (near "FROM" at position 7)
-INVALID:      |_ #2: An expression was expected. (near "JOIN" at position 12)
-INVALID:      |_ 
-INVALID: Invalid SQL query in examples/example1.go: INSERT INTO elements typo mistake (`foo`,`bar`) ...
-INVALID:      |_ #1: Unexpected token. (near "typo" at position 21)
-INVALID:      |_ #2: Unexpected beginning of statement. (near "typo" at position 21)
-INVALID:      |_ #3: Unexpected beginning of statement. (near "mistake" at position 26)
-INVALID:      |_ #4: Unexpected beginning of statement. (near "`foo`" at position 35)
-INVALID:      |_ #5: Unexpected beginning of statement. (near "`bar`" at position 41)
-INVALID:      |_ #6: Unrecognized statement type. (near "VALUES" at position 48)
-INVALID:      |_ 
-WARNING: Cannot fully check query in file 'examples/example1.go': SELECT * FROM ???
-INVALID: missing fields(s) Foo2 in declaration "examplesub.TestTypeSub{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in ???
 ```
 

@@ -25,8 +25,8 @@ const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 
 //------------------------------------------------------------------------------
 
-func paranoSqllintVisit(n *node.Node, functionsNames []string, filename string) bool {
-	if n.Father != nil && n.Father.TypeStr == "CallExpr" && util.InSlice(n.Father.Name, functionsNames) &&
+func paranoSqllintVisit(n *node.Node, filename string) bool {
+	if n.Father != nil && n.Father.TypeStr == "CallExpr" && util.InWildcardSet(n.Father.Name, sqlQueryFunctionsNames) &&
 		(n.TypeStr == "BinaryExpr" || n.TypeStr == "BasicLit") {
 
 		if debugInfo {
