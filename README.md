@@ -1,27 +1,30 @@
 # go-parano
 Experimental Go static analysis / robustness checker tool.
 
-It scans specific keywords in comments and alerts if something is not in agreement with them.
+go-parano is organized into different *features* (see below), 
+each feature checks a different thing. go-parano scans the source code 
+(argument -dir or -pkg), including specific keywords in comments, 
+and alerts (and returns exit code 2) if something is wrong.
 
 WARNING: still in development. Tested only on Linux, but there is no reason it would not work on other operating systems.
 
 ## How to build and test
 
-Without the SQL linter feature:
+If you don't need the SQL linter feature:
 ```
 $ go build -o go-parano.out ./src/ && ./go-parano.out -dir examples/
 ```
 
-With the SQL linter feature (installs and uses phpmyadmin/sql-parser using composer):
+If you need the SQL linter feature (version installing and using phpmyadmin/sql-parser using composer):
 ```
 $ go build -o go-parano.out ./src/ && sh test_phpmyadmin_sql-parser.sh
 ```
-With the SQL linter feature (installs and uses sqlfluff using pip):
+If you need the SQL linter feature (version installing and using sqlfluff using pip):
 ```
 $ go build -o go-parano.out ./src/ && sh test_sqlfluff.sh
 ```
 
-It should display something like (example with phpmyadmin/sql-parser):
+It should display something like (example below is the version with phpmyadmin/sql-parser):
 ```
 INVALID: missing fields(s) foo3, foo4 in declaration "testType1{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in examples/example1.go
 INVALID: Cannot use testVarNotOkay in examples/example1.go, declared as private to file in examples/example2.go
@@ -45,27 +48,26 @@ INVALID:      |_
 WARNING: Cannot fully check query in file 'examples/example1.go': SELECT * FROM ???
 INVALID: missing fields(s) Foo2 in declaration "examplesub.TestTypeSub{}" in examples/example1.go, type declared with //!PARANO__EXHAUSTIVE_FILLING in ???
 ```
+## Features:
 
-## Feature: private to file
+### Feature: private to file
 
-The first feature is a _private to file_ marker: a function/type/variable declared as "private to file" cannot be used in another file of the same package.
+This gives a way to ensure that a function/type/variable is not 
+used in another file of the same package.
 
 For example:
 ```
 //!PARANO__PRIVATE_TO_FILE
-var i int
+var i int // ---> i cannot be used in other files of the same package.
 ```
-disallows i to be used in other files of the same package.
 
-Also everything below the line:
-```
-// LOCAL PRIVATE STUFF
-```
+Also everything below the line `// LOCAL PRIVATE STUFF` 
 until the end of file, is also _private to file_.
 
-## Feature: struct exhaustive filling
+### Feature: struct exhaustive filling
 
-The second feature is a way to check that a structure is completely filled.
+This gives a way to check that all the fields of a Go struct are informed 
+when that struct is instancied.
 ```
 //!PARANO__EXHAUSTIVE_FILLING
 type testType1 struct {
@@ -78,7 +80,7 @@ var testNokFill = testType1{
 }
 ```
 
-## Feature: SQL linter
+### Feature: SQL linter
 
 This is a way to check that the SQL queries in the Go code are correct.
  
@@ -108,8 +110,8 @@ Current limitations (TODO):
  e.g. `examplesub.Query(foo)`
  * What if this is a method and not a function e.g. `dbHandle.Query()`.
  * '?' (static queries) won't work? (depends of the linter, though)
- * Do not check whether the tables and fields exist (should be configurable 
-	 with an SQL file).
+ * Do not check whether the tables and fields exist (depends of the linter, though, 
+	 but maybe it could be configurable with an SQL file).
  
 If you don't want to check queries in a function (e.g. false positives), 
 put as a comment `//!PARANO__IGNORE_CHECK_SQL_QUERIES` on top of the 
