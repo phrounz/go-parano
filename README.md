@@ -101,18 +101,15 @@ You can use any linter program as long as:
  * it returns nonzero code and a message if there is an error in the query.
 
 Current features:
- * Supports if there are several arguments in the function. *Note:* the query 
- shall be the first string-type argument of the function.
  * Supports if the query is splitted into several strings concatenated 
- with '+'. 
+ with '+', or even if it contains a constant declared in the current source file.
 
 Current limitations (TODO): 
- * Does not work if the query is a variable or even a constant 
- e.g. `examplesub.Query(foo)`
- * What if this is a method and not a function e.g. `dbHandle.Query()`.
- * '?' (static queries) won't work? (depends of the linter, though)
- * Do not check whether the tables and fields exist (depends of the linter, though, 
-	 but maybe it could be configurable with an SQL file).
+ * What if the function uses a struct as argument and the query is a field in the struct.
+ * What if this is a method and not a function e.g. `myDBHandle.Query()`.
+ * Limitations depending of the linter programs I tested:
+  * '?' (static queries) won't work?
+  * Does not check whether the tables and fields exist.
  
 If you don't want to check queries in a function (e.g. false positives), 
 put as a comment `//!PARANO__IGNORE_CHECK_SQL_QUERIES` on top of the 
