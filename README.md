@@ -108,8 +108,8 @@ Current limitations (TODO):
  * What if the function uses a struct as argument and the query is a field in the struct.
  * What if this is a method and not a function e.g. `myDBHandle.Query()`.
  * Limitations depending of the linter programs I tested:
-  * '?' (static queries) won't work?
-  * Does not check whether the tables and fields exist.
+  - '?' (static queries) won't work?
+  - Does not check whether the tables and fields exist.
  
 If you don't want to check queries in a function (e.g. false positives), 
 put as a comment `//!PARANO__IGNORE_CHECK_SQL_QUERIES` on top of the 
