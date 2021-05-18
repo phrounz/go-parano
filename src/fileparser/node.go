@@ -1,4 +1,4 @@
-package node
+package fileparser
 
 import (
 	"fmt"

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"./node"
+	"./fileparser"
 	"./util"
 )
 
@@ -28,7 +28,7 @@ const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 
 //------------------------------------------------------------------------------
 
-func paranoSqllintVisit(nCaller *node.Node, filename string, fileConstants []node.ConstValue) bool {
+func paranoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants []fileparser.ConstValue) bool {
 	if nCaller != nil && nCaller.TypeStr == "CallExpr" {
 
 		var value, ok = sqlQueryFunctionsNames.Find(nCaller.Name)

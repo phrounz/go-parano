@@ -3,7 +3,7 @@ package main
 import (
 	"regexp"
 
-	"./node"
+	"./fileparser"
 	"./util"
 )
 
@@ -45,7 +45,7 @@ func paranoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
 
 //------------------------------------------------------------------------------
 
-func paranoPrivateToFileVisit(n *node.Node, feat *featurePrivateToFile) {
+func paranoPrivateToFileVisit(n *fileparser.Node, feat *featurePrivateToFile) {
 
 	if n.TypeStr == "Ident" && n.DepthLevel <= 4 && feat.locationLocalPrivateStuff != -1 && n.BytesIndexBegin > feat.locationLocalPrivateStuff {
 		feat.privateToFileDecl[n.Name] = true
@@ -83,7 +83,7 @@ func paranoPrivateToFileVisit(n *node.Node, feat *featurePrivateToFile) {
 
 //------------------------------------------------------------------------------
 
-func paranoPrivateToFileCheck(n *node.Node, featurePrivateToFile *featurePrivateToFile, filename1 string, filename2 string) (failedAtLeastOnce bool) {
+func paranoPrivateToFileCheck(n *fileparser.Node, featurePrivateToFile *featurePrivateToFile, filename1 string, filename2 string) (failedAtLeastOnce bool) {
 
 	if filename1 != filename2 {
 		if _, ok := featurePrivateToFile.privateToFileDecl[n.Name]; ok {

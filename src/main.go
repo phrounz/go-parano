@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"./node"
+	"./fileparser"
 	"./util"
 )
 
@@ -23,8 +23,8 @@ type packageInfos struct {
 
 type infosFile struct {
 	packageName              string
-	rootNode                 *node.Node
-	fileConstants            []node.ConstValue
+	rootNode                 *fileparser.Node
+	fileConstants            []fileparser.ConstValue
 	featurePrivateToFile     *featurePrivateToFile
 	featureExhaustiveFilling *featureExhaustiveFilling
 }
@@ -84,7 +84,7 @@ func main() {
 	}
 
 	debugInfo = *debug
-	node.DebugInfo = debugInfo
+	fileparser.DebugInfo = debugInfo
 	noWarn = *noWarnPtr
 
 	if *pkg != "" {
@@ -190,7 +190,7 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 
 	var failedAtLeastOnce = false
 	for filename1, fileInfos := range infosByFile { // for each input file
-		fileInfos.rootNode.Visit(func(n *node.Node) {
+		fileInfos.rootNode.Visit(func(n *fileparser.Node) {
 			if len(sqlQueryFunctionsNames) > 0 {
 				failedAtLeastOnce = paranoSqllintVisit(n, filename1, fileInfos.fileConstants) && failedAtLeastOnce
 			}
@@ -221,20 +221,20 @@ func processFile(filename string) infosFile {
 	}
 
 	//----
-	// first pass => load file and get nodes
+	// first pass => load file and get informations
 
-	var rootNode, fileConstants, fileBytes, packageName = node.ReadFile(filename)
+	var fileInfo = fileparser.ReadFile(filename)
 
 	//----
 	// init
 
-	var featurePrivateToFile = paranoPrivateToFileInit(fileBytes)
+	var featurePrivateToFile = paranoPrivateToFileInit(fileInfo.FileBuffer)
 	var featureExhaustiveFilling = paranoExhaustiveFillingInit()
 
 	//----
 	// second pass => gather informations about nodes of this file
 
-	rootNode.Visit(func(n *node.Node) {
+	fileInfo.RootNode.Visit(func(n *fileparser.Node) {
 		if debugInfo {
 			n.Display()
 		}
@@ -243,9 +243,9 @@ func processFile(filename string) infosFile {
 	})
 
 	var infosf = infosFile{
-		packageName:              packageName,
-		rootNode:                 rootNode,
-		fileConstants:            fileConstants,
+		packageName:              fileInfo.PackageName,
+		rootNode:                 fileInfo.RootNode,
+		fileConstants:            fileInfo.FileConstants,
 		featurePrivateToFile:     featurePrivateToFile,
 		featureExhaustiveFilling: featureExhaustiveFilling,
 	}

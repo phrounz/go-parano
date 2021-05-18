@@ -1,4 +1,4 @@
-package node
+package fileparser
 
 import (
 	"go/ast"
@@ -13,8 +13,18 @@ var fileBytes []byte
 
 //------------------------------------------------------------------------------
 
+// FileInfo is the output of ReadFile().
+type FileInfo struct {
+	PackageName   string
+	FileBuffer    []byte
+	RootNode      *Node
+	FileConstants []ConstValue
+}
+
+//------------------------------------------------------------------------------
+
 // ReadFile parses a Go source file and returns informations about it.
-func ReadFile(filepath string) (rootNode *Node, fileConstants []ConstValue, fileBuffer []byte, packageName string) {
+func ReadFile(filepath string) FileInfo {
 	var fs = token.NewFileSet()
 	var err error
 	fileBytes, err = ioutil.ReadFile(filepath)
@@ -27,14 +37,16 @@ func ReadFile(filepath string) (rootNode *Node, fileConstants []ConstValue, file
 	}
 	v := newVisitor(f)
 	ast.Walk(&v, f)
-	rootNode = v.node
-	fileConstants = retrieveAllConstants(v.node)
-	fileBuffer = fileBytes
-	if len(rootNode.Children) > 0 && rootNode.Children[0].TypeStr == "File" &&
-		len(rootNode.Children[0].Children) > 0 && rootNode.Children[0].Children[0].TypeStr == "Ident" {
-		packageName = rootNode.Children[0].Children[0].Name
+	var fi = FileInfo{
+		FileBuffer:    fileBytes,
+		RootNode:      v.node,
+		FileConstants: retrieveAllConstants(v.node),
 	}
-	return
+	if len(fi.RootNode.Children) > 0 && fi.RootNode.Children[0].TypeStr == "File" &&
+		len(fi.RootNode.Children[0].Children) > 0 && fi.RootNode.Children[0].Children[0].TypeStr == "Ident" {
+		fi.PackageName = fi.RootNode.Children[0].Children[0].Name
+	}
+	return fi
 }
 
 //------------------------------------------------------------------------------

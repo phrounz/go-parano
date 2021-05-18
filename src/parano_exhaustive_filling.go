@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"./node"
+	"./fileparser"
 	"./util"
 )
 
@@ -27,7 +27,7 @@ func paranoExhaustiveFillingInit() *featureExhaustiveFilling {
 
 //------------------------------------------------------------------------------
 
-func paranoExhaustiveFillingVisit(n *node.Node, featureExhaustiveFilling *featureExhaustiveFilling) {
+func paranoExhaustiveFillingVisit(n *fileparser.Node, featureExhaustiveFilling *featureExhaustiveFilling) {
 
 	if n.IsCommentGroupWithComment(constExaustiveFilling) && n.Father != nil {
 		var nextNode = n.NextNode()
@@ -56,7 +56,7 @@ func paranoExhaustiveFillingVisit(n *node.Node, featureExhaustiveFilling *featur
 
 //------------------------------------------------------------------------------
 
-func paranoExhaustiveFillingCheck(n *node.Node, packageName string, featureExhaustiveFilling *featureExhaustiveFilling, filename1 string, filename2 string) (failedAtLeastOnce bool) {
+func paranoExhaustiveFillingCheck(n *fileparser.Node, packageName string, featureExhaustiveFilling *featureExhaustiveFilling, filename1 string, filename2 string) (failedAtLeastOnce bool) {
 	if fieldsStruct, ok := featureExhaustiveFilling.exhaustiveFillingStructs[n.Name]; ok {
 		failedAtLeastOnce = commonCheckExhaustiveFilling(n, fieldsStruct, filename1, filename2)
 	}
@@ -79,7 +79,7 @@ func paranoExhaustiveFillingCheckGlobal(mInfosByPackageName map[string]*packageI
 
 	for _, packageInfos := range mInfosByPackageName {
 		for filename1, fileInfos := range packageInfos.infosByFile {
-			fileInfos.rootNode.Visit(func(n *node.Node) {
+			fileInfos.rootNode.Visit(func(n *fileparser.Node) {
 				if fieldsStruct, ok := mGlobalExhaustiveFillingStructs[n.Bytes]; ok {
 					failedAtLeastOnce = commonCheckExhaustiveFilling(n, fieldsStruct, filename1, "???")
 				}
@@ -92,7 +92,7 @@ func paranoExhaustiveFillingCheckGlobal(mInfosByPackageName map[string]*packageI
 //------------------------------------------------------------------------------
 
 //!PARANO__PRIVATE_TO_FILE
-func commonCheckExhaustiveFilling(n *node.Node, fieldsStruct map[string]bool, filename1 string, filename2 string) (failedAtLeastOnce bool) {
+func commonCheckExhaustiveFilling(n *fileparser.Node, fieldsStruct map[string]bool, filename1 string, filename2 string) (failedAtLeastOnce bool) {
 	if n.Father.TypeStr == "CompositeLit" {
 		var fields = make(map[string]bool)
 		for _, keyValue := range n.Father.Children {

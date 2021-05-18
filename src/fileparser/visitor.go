@@ -1,7 +1,7 @@
 /*
 	https://medium.com/justforfunc/understanding-go-programs-with-go-parser-c4e88a6edb87
 */
-package node
+package fileparser
 
 import (
 	"go/ast"
