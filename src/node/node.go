@@ -3,35 +3,10 @@ package node
 import (
 	"fmt"
 	"go/ast"
-	"go/parser"
-	"go/token"
-	"io/ioutil"
 	"strings"
 
 	"../util"
 )
-
-//------------------------------------------------------------------------------
-
-var fileBytes []byte
-
-//------------------------------------------------------------------------------
-
-func ReadFile(filepath string) (*Node, []byte) {
-	var fs = token.NewFileSet()
-	var err error
-	fileBytes, err = ioutil.ReadFile(filepath)
-	if err != nil {
-		panic("could not parse file:" + err.Error())
-	}
-	f, err := parser.ParseFile(fs, filepath, nil, parser.ParseComments|parser.AllErrors)
-	if err != nil {
-		panic("could not parse file:" + err.Error())
-	}
-	v := newVisitor(f)
-	ast.Walk(&v, f)
-	return v.node, fileBytes
-}
 
 //------------------------------------------------------------------------------
 
@@ -93,12 +68,80 @@ func (n *Node) Visit(fnCall func(*Node)) {
 
 //------------------------------------------------------------------------------
 
+// IsCommentGroupWithComment returns true if this is a CommentGroup with the comment in it.
 func (n *Node) IsCommentGroupWithComment(comment string) bool {
 	if n.TypeStr == "CommentGroup" {
 		for _, child := range n.Children {
 			if child.Bytes == comment {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+//------------------------------------------------------------------------------
+
+// ComputeStringExpression compute/concatenate (recursively) a constant string expression,
+// e.g. "foo"+"bar"+string("baz") will return ("foobarbaz", false).
+// If it contains something which is not processable, it will return incomplete=true and all
+// unprocessable parts will be replaced by "???" in str.
+func (n *Node) ComputeStringExpression(fileConstants []ConstValue) (str string, incomplete bool) {
+
+	switch n.TypeStr {
+
+	case "BasicLit": // "foobar"
+		str = n.Name
+		return
+
+	case "BinaryExpr": // "foo"+"bar"
+		if len(n.Children) == 2 && len(n.Bytes) > len(n.Children[0].Bytes)+len(n.Children[1].Bytes) {
+			var operator = n.Bytes[len(n.Children[0].Bytes):strings.Index(n.Bytes, n.Children[1].Bytes)]
+			operator = strings.Replace(operator, " ", "", -1)
+			operator = strings.Replace(operator, "\n", "", -1)
+			if strings.Index(operator, "+") != -1 && strings.Index(operator, "+=") == -1 {
+				var subStr1, incompleteSub1 = n.Children[0].ComputeStringExpression(fileConstants)
+				var subStr2, incompleteSub2 = n.Children[1].ComputeStringExpression(fileConstants)
+				str = subStr1 + subStr2
+				incomplete = (incompleteSub1 || incompleteSub2)
+				return
+			}
+		}
+
+	case "CallExpr":
+		if len(n.Children) == 2 && n.Children[0].TypeStr == "Ident" && n.Children[0].Name == "string" && n.Children[1].TypeStr == "BasicLit" { // string("foobar")
+			str = n.Children[1].Name
+			return
+		}
+
+	case "Ident":
+		for _, constValue := range fileConstants {
+			if n.Name == constValue.Name && n.IsInScope(constValue.Node) {
+				str = constValue.Value // constFoo (being declared elsewhere in the file as 'const constFoo="foo"')
+				// TODO does not work with stuff declared in another file of the same package
+				return
+			}
+		}
+	}
+
+	str = "???"
+	incomplete = true
+
+	return
+}
+
+//------------------------------------------------------------------------------
+
+// IsInScope returns true if "n" can access "other" i.e. the father of "other"
+// is a father or grand-father or grand-XXX-father or "n".
+func (n *Node) IsInScope(other *Node) bool {
+	if other.Father != nil {
+		var nF = n.Father
+		for nF != nil {
+			if nF == other.Father {
+				return true
+			}
+			nF = nF.Father
 		}
 	}
 	return false

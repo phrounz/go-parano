@@ -93,16 +93,7 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 		var nodeCasted = nodeObj.(*ast.BasicLit)
 		switch nodeCasted.Kind {
 		case token.STRING:
-			var useQuotes = (nodeCasted.Value[0] == '"')             // false if '`'
-			n.Name = (nodeCasted.Value[1 : len(nodeCasted.Value)-1]) // remove begin/end quotes '"' or '`'
-			if useQuotes {
-				var parts1 = strings.Split(n.Name, "\\\\") // replace escaped characters
-				var parts2 []string
-				for _, part := range parts1 {
-					parts2 = append(parts2, strings.Replace(part, "\\", "", -1)) // replace escaped characters
-				}
-				n.Name = strings.Join(parts2, "\\")
-			}
+			n.Name = removeQuotes(nodeCasted.Value)
 		}
 		n.TypeStr = "BasicLit"
 		// for _, spec := range d.Specs {
@@ -127,6 +118,23 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 		depthLevel: n.DepthLevel,
 		node:       n,
 	}
+}
+
+//------------------------------------------------------------------------------
+
+// remove '"' or '`'
+func removeQuotes(value string) string {
+	var useQuotes = (value[0] == '"')      // false if '`'
+	var output = (value[1 : len(value)-1]) // remove begin/end quotes '"' or '`'
+	if useQuotes {
+		var parts1 = strings.Split(output, "\\\\") // replace escaped characters
+		var parts2 []string
+		for _, part := range parts1 {
+			parts2 = append(parts2, strings.Replace(part, "\\", "", -1)) // replace escaped characters
+		}
+		output = strings.Join(parts2, "\\")
+	}
+	return output
 }
 
 //------------------------------------------------------------------------------

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"./node"
@@ -23,25 +24,66 @@ var sqlQueriesSlice []queryInfo
 const constIgnoreGoCheckDBQueries = "//!PARANO__IGNORE_CHECK_SQL_QUERIES"
 const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 
+//const constIgnoreGoCheckDBQueryAlt = "//ignore_go_check_db_queries"
+
 //------------------------------------------------------------------------------
 
-func paranoSqllintVisit(n *node.Node, filename string) bool {
-	if n.Father != nil && n.Father.TypeStr == "CallExpr" && util.InWildcardSet(n.Father.Name, sqlQueryFunctionsNames) &&
-		(n.TypeStr == "BinaryExpr" || n.TypeStr == "BasicLit") {
+func paranoSqllintVisit(nCaller *node.Node, filename string, fileConstants []node.ConstValue) bool {
+	if nCaller != nil && nCaller.TypeStr == "CallExpr" {
+
+		var value, ok = sqlQueryFunctionsNames.Find(nCaller.Name)
+		if !ok {
+			return false
+		}
+		var argumentIndex, ok2 = value.(int)
+		if !ok2 {
+			panic("value not int in sqlQueryFunctionsNames")
+		}
+
+		// fmt.Printf("---\n")
+		var countShift = 1
+		// for _, subn := range nCaller.Children {
+		// 	// fmt.Printf("%s\n", subn.TypeStr)
+		// 	if subn.TypeStr == "SelectorExpr" { or "Ident"
+		// 		countShift++
+		// 	} else {
+		// 		break
+		// 	}
+		// }
+
+		var argIndex = argumentIndex + countShift - 1
+
+		if argIndex >= len(nCaller.Children) {
+			panic("bad index argument " + strconv.Itoa(countShift) + " for " + nCaller.Name)
+		}
+		var goodN = nCaller.Children[argIndex]
+		if !(goodN.TypeStr == "BinaryExpr" || goodN.TypeStr == "BasicLit") {
+			// panic("Arg " + strconv.Itoa(argumentIndex) + " (child node " + strconv.Itoa(argIndex) +
+			// 	") is not a BinaryExpr or BasicLit but " + goodN.TypeStr + " for " + nCaller.Name + ": " + nCaller.Bytes)
+			if !noWarn {
+				util.Warn("File '%s': Cannot check arg %d in function call: %s", filename, argumentIndex, nCaller.Bytes)
+			}
+		}
 
 		if debugInfo {
-			util.DebugPrintf("paranoSqllintVisit: %s %s %s %s", n.TypeStr, n.Name, n.Father.TypeStr, n.Father.Name)
+			util.DebugPrintf("paranoSqllintVisit: %s %s %s %s", goodN.TypeStr, goodN.Name, nCaller.TypeStr, nCaller.Name)
 		}
-		var strQuery, abort = concatStringsRecursive(n)
+		var strQuery, abort = goodN.ComputeStringExpression(fileConstants)
+		if abort {
+			if !noWarn {
+				util.Warn("File '%s': Cannot check query in function call %s: %s", filename, nCaller.Name, goodN.Bytes)
+			}
+			return false
+		}
 
-		if strings.Index(n.Father.Bytes, constIgnoreGoCheckDBQuery) != -1 {
+		if strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQuery) != -1 /*|| strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQueryAlt) != -1*/ {
 			if debugInfo || verbose {
 				util.Info("    Ignoring SQL query in '%s': %s", filename, getSQLQueryTruncated(strQuery))
 			}
 			return false
 		}
 
-		var nFather = n.Father.Father
+		var nFather = nCaller.Father
 		for nFather != nil {
 			if nFather.TypeStr == "FuncDecl" {
 				for _, subn := range nFather.Children {
@@ -57,21 +99,6 @@ func paranoSqllintVisit(n *node.Node, filename string) bool {
 			nFather = nFather.Father
 		}
 
-		var firstBasicLit = true
-		for _, subn := range n.Father.Children {
-			if subn.TypeStr == "BasicLit" || subn.TypeStr == "BinaryExpr" {
-				if firstBasicLit && n != subn {
-					//fmt.Printf(" %+v %+v\n", n, subn)
-					return false // we only check if it is the first BasicLit-type argument of the function
-				}
-				firstBasicLit = false
-			}
-		}
-
-		if abort {
-			util.Warn("Cannot fully check query in file '%s': %s", filename, strQuery)
-			return false
-		}
 		if len(strQuery) > 0 && strQuery[len(strQuery)-1] != ';' {
 			strQuery += ";"
 		}
@@ -79,7 +106,7 @@ func paranoSqllintVisit(n *node.Node, filename string) bool {
 		if sqlQueryAllInOne {
 			sqlQueriesSlice = append(sqlQueriesSlice, qi)
 		} else {
-			return checkQuery(qi)
+			return checkQuery(qi, false)
 		}
 
 	}
@@ -98,7 +125,7 @@ func paranoSqllintCheckQueries() {
 			util.Info("Checking %d SQL queries (%d characters)...", len(sqlQueriesSlice), len(sqlQueriesAll))
 			//fmt.Printf("%s\n", sqlQueriesAll)
 		}
-		checkQuery(queryInfo{strQuery: sqlQueriesAll, filename: "???"})
+		checkQuery(queryInfo{strQuery: sqlQueriesAll, filename: "???"}, true)
 		if verbose {
 			util.Info("Checking %d SQL queries done.", len(sqlQueriesSlice))
 		}
@@ -107,27 +134,7 @@ func paranoSqllintCheckQueries() {
 
 //------------------------------------------------------------------------------
 
-func concatStringsRecursive(n *node.Node) (strQuery string, abort bool) {
-	if n.TypeStr == "BasicLit" {
-		strQuery = n.Name
-	} else if n.TypeStr == "BinaryExpr" {
-		for _, subn := range n.Children {
-			var subStrQuery, abortSub = concatStringsRecursive(subn)
-			strQuery += subStrQuery
-			if abortSub {
-				abort = true
-			}
-		}
-	} else {
-		strQuery += "???"
-		abort = true
-	}
-	return
-}
-
-//------------------------------------------------------------------------------
-
-func checkQuery(qi queryInfo) (failed bool) {
+func checkQuery(qi queryInfo, isGroupOfQueries bool) (failed bool) {
 	if debugInfo {
 		util.DebugPrintf("checkQuery: %s", qi.strQuery)
 	}
@@ -136,7 +143,11 @@ func checkQuery(qi queryInfo) (failed bool) {
 	var out, exitCode = util.RunCmdWithStdin(qi.strQuery, sqlQueryLintBinaryWithArgs[0], sqlQueryLintBinaryWithArgs[1:])
 	//fmt.Printf("out: %s\n", out)
 	if out != "" && exitCode != 0 {
-		util.NotPass("Invalid SQL query in %s: %s\n%s", qi.filename, getSQLQueryTruncated(qi.strQuery), out)
+		if isGroupOfQueries {
+			util.NotPass("Invalid SQL query in %s:\n%s", qi.filename, out)
+		} else {
+			util.NotPass("Invalid SQL query in %s: %s\n%s", qi.filename, getSQLQueryTruncated(qi.strQuery), out)
+		}
 		failed = true
 		return
 	} else if out != "" {

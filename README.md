@@ -85,8 +85,9 @@ var testNokFill = testType1{
 This is a way to check that the SQL queries in the Go code are correct.
  
 Basically you define in the arguments of go-parano:
- * the function that is used for all of your queries 
- (like `examplesub.Query`) (with `-sql-query-func-name`)
+ * the function(s) used for all of your queries, and the argument index in 
+ this(these) function(s) containing the query 
+ (like `examplesub.Query:1`) (with `-sql-query-func-name`)
  * a linter program (with `-sql-query-lint-binary`)
 	
 and it will check all the queries in the functions calls in the source code.

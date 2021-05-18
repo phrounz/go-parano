@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"./node"
@@ -23,16 +24,19 @@ type packageInfos struct {
 type infosFile struct {
 	packageName              string
 	rootNode                 *node.Node
+	fileConstants            []node.ConstValue
 	featurePrivateToFile     *featurePrivateToFile
 	featureExhaustiveFilling *featureExhaustiveFilling
 }
 
 var verbose bool
+var debugInfo bool
+var noWarn bool
 var noColor bool
-var debugInfo = false
-var sqlQueryFunctionsNames util.WildcardSet
+var sqlQueryFunctionsNames util.WildcardMap
 var sqlQueryLintBinary string
 var sqlQueryAllInOne bool
+var ignoreGoFiles = make(map[string]bool)
 
 //------------------------------------------------------------------------------
 
@@ -42,25 +46,46 @@ func main() {
 		usage()
 	}
 
-	var noColorPtr = flag.Bool("nocolor", false, "disable color")
-	var pkgDir = flag.String("dir", "", "source directory")
-	var pkg = flag.String("pkg", "", "source package")
-	var verbosePtr = flag.Bool("v", false, "verbose info")
-	var debug = flag.Bool("debug", false, "debug info")
-	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "SQL query function name (you may provide several, separated by comma; accepts up to one wilcard character '*' by function name)")
+	var noColorPtr = flag.Bool("nocolor", false, "Disables color in output.")
+	var pkgDir = flag.String("dir", "", "Source directory.")
+	var pkg = flag.String("pkg", "", "Source package.")
+	var verbosePtr = flag.Bool("v", false, "Shows INFO messages.")
+	var debug = flag.Bool("debug", false, "Shows DEBUG messages.")
+	var noWarnPtr = flag.Bool("no-warn", false, "Hide WARNING messages (those messages usually show something the program cannot check because of its limitations).")
+	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "Name of the function used for queries in the source code.\n"+
+		"- You may provide several function names, separated by comma.\n"+
+		"- Accepts up to one wilcard character '*' by function name.\n"+
+		"- Each function name must contain as suffix a colon followed by the argument index \n"+
+		"  (starting from 1) containing the query, e.g. \":2\" is the second function argument.")
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
 	var sqlQueryAllInOnePtr = flag.Bool("sql-query-all-in-one", false, "If set, run the SQL query lint program once with all the queries as argument, instead of running once by query.")
+	var ignoreGoFilesPtr = flag.String("ignore-go-files", "", "List of files to ignore when using -dir or -pkg, comma-separated.")
 	flag.Parse()
 	noColor = *noColorPtr
 	verbose = *verbosePtr
 	if *sqlQueryFunctionNamePtr != "" {
-		sqlQueryFunctionsNames = util.NewWildcardSet(strings.Split(*sqlQueryFunctionNamePtr, ","))
+		sqlQueryFunctionsNames = util.NewWildcardMap()
+		for _, el := range strings.Split(*sqlQueryFunctionNamePtr, ",") {
+			var elSplitted = strings.Split(el, ":")
+			if len(elSplitted) != 2 {
+				panic("bad argument: " + *sqlQueryFunctionNamePtr)
+			}
+			var i, err = strconv.Atoi(elSplitted[1])
+			if err != nil {
+				panic("bad argument: " + *sqlQueryFunctionNamePtr + ": " + err.Error())
+			}
+			sqlQueryFunctionsNames.Add(elSplitted[0], i)
+		}
 	}
 	sqlQueryLintBinary = *sqlQueryLintBinaryPtr
 	sqlQueryAllInOne = *sqlQueryAllInOnePtr
+	for _, file := range strings.Split(*ignoreGoFilesPtr, ",") {
+		ignoreGoFiles[file] = true
+	}
 
 	debugInfo = *debug
 	node.DebugInfo = debugInfo
+	noWarn = *noWarnPtr
 
 	if *pkg != "" {
 		*pkgDir = os.Getenv("GOPATH") + "/src/" + *pkg
@@ -147,7 +172,9 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 
 	infosByFile = make(map[string]infosFile)
 	for _, filename := range files {
-		infosByFile[filename] = processFile(filename)
+		if _, ok := ignoreGoFiles[filename]; !ok {
+			infosByFile[filename] = processFile(filename)
+		}
 	}
 
 	if debugInfo || verbose {
@@ -165,7 +192,7 @@ func processPkgFiles(files []string) (infosByFile map[string]infosFile) {
 	for filename1, fileInfos := range infosByFile { // for each input file
 		fileInfos.rootNode.Visit(func(n *node.Node) {
 			if len(sqlQueryFunctionsNames) > 0 {
-				failedAtLeastOnce = paranoSqllintVisit(n, filename1) && failedAtLeastOnce
+				failedAtLeastOnce = paranoSqllintVisit(n, filename1, fileInfos.fileConstants) && failedAtLeastOnce
 			}
 			if n.Name != "" {
 				for filename2, fileInfos2 := range infosByFile { // for each file
@@ -196,7 +223,7 @@ func processFile(filename string) infosFile {
 	//----
 	// first pass => load file and get nodes
 
-	var rootNode, fileBytes = node.ReadFile(filename)
+	var rootNode, fileConstants, fileBytes, packageName = node.ReadFile(filename)
 
 	//----
 	// init
@@ -207,13 +234,9 @@ func processFile(filename string) infosFile {
 	//----
 	// second pass => gather informations about nodes of this file
 
-	var packageName string
 	rootNode.Visit(func(n *node.Node) {
 		if debugInfo {
 			n.Display()
-		}
-		if n.TypeStr == "Ident" && n.Father.TypeStr == "File" {
-			packageName = n.Name
 		}
 		paranoPrivateToFileVisit(n, featurePrivateToFile)
 		paranoExhaustiveFillingVisit(n, featureExhaustiveFilling)
@@ -222,11 +245,14 @@ func processFile(filename string) infosFile {
 	var infosf = infosFile{
 		packageName:              packageName,
 		rootNode:                 rootNode,
+		fileConstants:            fileConstants,
 		featurePrivateToFile:     featurePrivateToFile,
 		featureExhaustiveFilling: featureExhaustiveFilling,
 	}
 
-	//if debugInfo { util.DebugPrintf("\n\n\n%+v\n", infosf) }
+	if debugInfo {
+		util.DebugPrintf("\n\n\n%+v\n", infosf)
+	}
 
 	return infosf
 }

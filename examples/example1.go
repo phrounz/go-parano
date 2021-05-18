@@ -57,7 +57,12 @@ func main() {
 		true, "test")
 	examplesub.QueryNoAnswer( //!PARANO__IGNORE_CHECK_SQL_QUERY
 		"SELECTYYYY")
-	examplesub.Query(true, "SELECT * FROM "+string("cause warnings"), true, "test")
+
+	const constElements = "elements"
+	var varElements = "elements"
+	examplesub.Query(true, "SELECT * FROM "+string("elements"), true, "test")
+	examplesub.Query(true, "SELECT * FROM "+constElements, true, "test")
+	examplesub.Query(true, "SELECT * FROM "+varElements, true, "test")
 }
 
 //!PARANO__IGNORE_CHECK_SQL_QUERIES

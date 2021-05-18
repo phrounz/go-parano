@@ -7,5 +7,5 @@ if [ ! -d vendor/phpmyadmin/sql-parser/ ];then
 fi
 
 ./go-parano.out -dir ./examples/ \
-  -sql-query-func-name 'examplesub.Query*' \
+  -sql-query-func-name 'examplesub.QueryNoAnswer:1,examplesub.Query:2' \
   -sql-query-lint-binary "vendor/phpmyadmin/sql-parser/bin/lint-query" # "./sql-lint-linux"
