@@ -96,7 +96,9 @@ func (n *Node) ComputeStringExpression(fileConstants []ConstValue) (str string, 
 
 	case "BinaryExpr": // "foo"+"bar"
 		if len(n.Children) == 2 && len(n.Bytes) > len(n.Children[0].Bytes)+len(n.Children[1].Bytes) {
-			var operator = n.Bytes[len(n.Children[0].Bytes):strings.Index(n.Bytes, n.Children[1].Bytes)]
+			var len0 = len(n.Children[0].Bytes)
+			var len1 = strings.Index(n.Bytes[len0:], n.Children[1].Bytes) + len0
+			var operator = n.Bytes[len0:len1]
 			operator = strings.Replace(operator, " ", "", -1)
 			operator = strings.Replace(operator, "\n", "", -1)
 			if strings.Index(operator, "+") != -1 && strings.Index(operator, "+=") == -1 {
