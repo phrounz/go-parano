@@ -12,10 +12,6 @@ import (
 
 //------------------------------------------------------------------------------
 
-var DebugInfo = false
-
-//------------------------------------------------------------------------------
-
 type visitor struct {
 	father     *visitor
 	node       *Node
@@ -59,7 +55,7 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 
 	v.node.Children = append(v.node.Children, n)
 
-	// if DebugInfo {
+	// if PrintDebug {
 	// 	var line = ""
 	// 	line += fmt.Sprintf("%s%T [", strings.Repeat("\t", n.DepthLevel), nodeObj)
 	// 	for i, b := range n.Bytes {

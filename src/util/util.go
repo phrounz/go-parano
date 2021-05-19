@@ -17,6 +17,30 @@ func GetExitCode() int {
 
 //------------------------------------------------------------------------------
 
+var printInfo bool
+var printDebug bool
+var printWarn bool
+
+func SetVerbosity(printInfoP bool, printDebugP bool, printWarnP bool) {
+	printInfo = printInfoP
+	printDebug = printDebugP
+	printWarn = printWarnP
+}
+
+func IsDebug() bool {
+	return printDebug
+}
+
+func IsInfo() bool {
+	return printInfo
+}
+
+func IsWarn() bool {
+	return printWarn
+}
+
+//------------------------------------------------------------------------------
+
 var colorInfo = "\033[37m"    //light gray
 var colorNotPass = "\033[31m" //Red
 var colorWarn = "\033[33m"    //Orange/yellow

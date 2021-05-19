@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"strings"
@@ -19,7 +19,7 @@ type featureExhaustiveFilling struct {
 
 //------------------------------------------------------------------------------
 
-func paranoExhaustiveFillingInit() *featureExhaustiveFilling {
+func ParanoExhaustiveFillingInit() *featureExhaustiveFilling {
 	return &featureExhaustiveFilling{
 		exhaustiveFillingStructs: make(map[string]map[string]bool),
 	}
@@ -27,12 +27,12 @@ func paranoExhaustiveFillingInit() *featureExhaustiveFilling {
 
 //------------------------------------------------------------------------------
 
-func paranoExhaustiveFillingVisit(n *fileparser.Node, featureExhaustiveFilling *featureExhaustiveFilling) {
+func ParanoExhaustiveFillingVisit(n *fileparser.Node, featureExhaustiveFilling *featureExhaustiveFilling) {
 
 	if n.IsCommentGroupWithComment(constExaustiveFilling) && n.Father != nil {
 		var nextNode = n.NextNode()
 		if nextNode != nil && nextNode.TypeStr == "TypeSpec" {
-			if debugInfo {
+			if util.IsDebug() {
 				util.DebugPrintf("....... ExhaustiveFilling: >=%s %s<=", nextNode.Name, nextNode.TypeStr)
 			}
 			var keys = make(map[string]bool)
@@ -56,7 +56,7 @@ func paranoExhaustiveFillingVisit(n *fileparser.Node, featureExhaustiveFilling *
 
 //------------------------------------------------------------------------------
 
-func paranoExhaustiveFillingCheck(n *fileparser.Node, packageName string, featureExhaustiveFilling *featureExhaustiveFilling, filename1 string, filename2 string) (failedAtLeastOnce bool) {
+func ParanoExhaustiveFillingCheck(n *fileparser.Node, packageName string, featureExhaustiveFilling *featureExhaustiveFilling, filename1 string, filename2 string) (failedAtLeastOnce bool) {
 	if fieldsStruct, ok := featureExhaustiveFilling.exhaustiveFillingStructs[n.Name]; ok {
 		failedAtLeastOnce = commonCheckExhaustiveFilling(n, fieldsStruct, filename1, filename2)
 	}
@@ -65,7 +65,7 @@ func paranoExhaustiveFillingCheck(n *fileparser.Node, packageName string, featur
 
 //------------------------------------------------------------------------------
 
-func paranoExhaustiveFillingCheckGlobal(mInfosByPackageName map[string]*packageInfos) (failedAtLeastOnce bool) {
+func ParanoExhaustiveFillingCheckGlobal(mInfosByPackageName map[string]*packageInfos) (failedAtLeastOnce bool) {
 
 	var mGlobalExhaustiveFillingStructs = make(map[string]map[string]bool)
 

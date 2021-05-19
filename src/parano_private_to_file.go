@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"regexp"
@@ -22,7 +22,7 @@ type featurePrivateToFile struct {
 
 //------------------------------------------------------------------------------
 
-func paranoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
+func ParanoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
 
 	var locationLocalPrivateStuff = -1
 	var loc = regexp.MustCompile(constLocalPrivateStuffLineRegexp1).FindIndex(fileBytes)
@@ -34,7 +34,7 @@ func paranoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
 			locationLocalPrivateStuff = loc[1]
 		}
 	}
-	if debugInfo {
+	if util.IsDebug() {
 		util.DebugPrintf("  locationLocalPrivateStuff: %d", locationLocalPrivateStuff)
 	}
 	return &featurePrivateToFile{
@@ -45,7 +45,7 @@ func paranoPrivateToFileInit(fileBytes []byte) *featurePrivateToFile {
 
 //------------------------------------------------------------------------------
 
-func paranoPrivateToFileVisit(n *fileparser.Node, feat *featurePrivateToFile) {
+func ParanoPrivateToFileVisit(n *fileparser.Node, feat *featurePrivateToFile) {
 
 	if n.TypeStr == "Ident" && n.DepthLevel <= 4 && feat.locationLocalPrivateStuff != -1 && n.BytesIndexBegin > feat.locationLocalPrivateStuff {
 		feat.privateToFileDecl[n.Name] = true
@@ -56,7 +56,7 @@ func paranoPrivateToFileVisit(n *fileparser.Node, feat *featurePrivateToFile) {
 				if n2.TypeStr == "ValueSpec" {
 					if len(n2.Children) >= 2 {
 						var name = n2.Children[0].Bytes
-						if debugInfo {
+						if util.IsDebug() {
 							util.DebugPrintf("....... PrivateToFile: ValueSpec: >=%s <=", name)
 						}
 						feat.privateToFileDecl[name] = true
@@ -65,14 +65,14 @@ func paranoPrivateToFileVisit(n *fileparser.Node, feat *featurePrivateToFile) {
 				}
 			}
 		} else if n.Father.TypeStr == "FuncDecl" {
-			if debugInfo {
+			if util.IsDebug() {
 				util.DebugPrintf("....... PrivateToFile: FuncDecl: >=%s %s<=", n.Father.Name, n.Father.TypeStr)
 			}
 			feat.privateToFileDecl[n.Father.Name] = true
 		} else {
 			var nextNode = n.NextNode()
 			if nextNode != nil && nextNode.TypeStr == "TypeSpec" {
-				if debugInfo {
+				if util.IsDebug() {
 					util.DebugPrintf("....... PrivateToFile: TypeSpec: >=%s %s<=", nextNode.Name, nextNode.TypeStr)
 				}
 				feat.privateToFileDecl[nextNode.Name] = true
@@ -83,7 +83,7 @@ func paranoPrivateToFileVisit(n *fileparser.Node, feat *featurePrivateToFile) {
 
 //------------------------------------------------------------------------------
 
-func paranoPrivateToFileCheck(n *fileparser.Node, featurePrivateToFile *featurePrivateToFile, filename1 string, filename2 string) (failedAtLeastOnce bool) {
+func ParanoPrivateToFileCheck(n *fileparser.Node, featurePrivateToFile *featurePrivateToFile, filename1 string, filename2 string) (failedAtLeastOnce bool) {
 
 	if filename1 != filename2 {
 		if _, ok := featurePrivateToFile.privateToFileDecl[n.Name]; ok {

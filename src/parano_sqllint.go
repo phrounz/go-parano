@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"fmt"
@@ -11,7 +11,14 @@ import (
 
 //------------------------------------------------------------------------------
 
-// used in sqlQueryAllInOne==true
+type SQLQueryOptions struct {
+	FunctionsNames util.WildcardMap
+	AllInOne       bool
+	LintBinary     string
+}
+
+//------------------------------------------------------------------------------
+
 type queryInfo struct {
 	strQuery string
 	filename string
@@ -28,10 +35,10 @@ const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 
 //------------------------------------------------------------------------------
 
-func paranoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants []fileparser.ConstValue) bool {
+func ParanoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants []fileparser.ConstValue, sqlqo SQLQueryOptions) bool {
 	if nCaller != nil && nCaller.TypeStr == "CallExpr" {
 
-		var value, ok = sqlQueryFunctionsNames.Find(nCaller.Name)
+		var value, ok = sqlqo.FunctionsNames.Find(nCaller.Name)
 		if !ok {
 			return false
 		}
@@ -60,25 +67,25 @@ func paranoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants
 		if !(goodN.TypeStr == "BinaryExpr" || goodN.TypeStr == "BasicLit") {
 			// panic("Arg " + strconv.Itoa(argumentIndex) + " (child node " + strconv.Itoa(argIndex) +
 			// 	") is not a BinaryExpr or BasicLit but " + goodN.TypeStr + " for " + nCaller.Name + ": " + nCaller.Bytes)
-			if !noWarn {
+			if util.IsWarn() {
 				util.Warn("File '%s': Cannot check arg %d in function call: %s", filename, argumentIndex, nCaller.Bytes)
 			}
 		}
 
-		if debugInfo {
+		if util.IsDebug() {
 			util.DebugPrintf("paranoSqllintVisit: %s %s %s %s", goodN.TypeStr, goodN.Name, nCaller.TypeStr, nCaller.Name)
 		}
 		var strQuery, abort = goodN.ComputeStringExpression(fileConstants)
 		if abort {
-			if !noWarn {
+			if util.IsWarn() {
 				util.Warn("File '%s': Cannot check query in function call %s: %s", filename, nCaller.Name, goodN.Bytes)
 			}
 			return false
 		}
 
 		if strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQuery) != -1 /*|| strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQueryAlt) != -1*/ {
-			if debugInfo || verbose {
-				util.Info("    Ignoring SQL query in '%s': %s", filename, getSQLQueryTruncated(strQuery))
+			if util.IsDebug() || util.IsInfo() {
+				util.Info("    Ignoring SQL query in '%s': %s", filename, getStrTruncated(strQuery))
 			}
 			return false
 		}
@@ -88,8 +95,8 @@ func paranoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants
 			if nFather.TypeStr == "FuncDecl" {
 				for _, subn := range nFather.Children {
 					if subn.IsCommentGroupWithComment(constIgnoreGoCheckDBQueries) {
-						if debugInfo || verbose {
-							util.Info("    Ignoring SQL query in '%s' within function %s: %s", filename, nFather.Name, getSQLQueryTruncated(strQuery))
+						if util.IsDebug() || util.IsInfo() {
+							util.Info("    Ignoring SQL query in '%s' within function %s: %s", filename, nFather.Name, getStrTruncated(strQuery))
 						}
 						return false
 					}
@@ -103,10 +110,10 @@ func paranoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants
 			strQuery += ";"
 		}
 		var qi = queryInfo{strQuery: strQuery, filename: filename}
-		if sqlQueryAllInOne {
+		if sqlqo.AllInOne {
 			sqlQueriesSlice = append(sqlQueriesSlice, qi)
 		} else {
-			return checkQuery(qi, false)
+			return checkQuery(qi, false, sqlqo.LintBinary)
 		}
 
 	}
@@ -115,18 +122,18 @@ func paranoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants
 
 //------------------------------------------------------------------------------
 
-func paranoSqllintCheckQueries() {
+func ParanoSqllintCheckQueries(sqlqo SQLQueryOptions) {
 	if len(sqlQueriesSlice) > 0 {
 		var sqlQueriesAll string
 		for _, qi := range sqlQueriesSlice {
 			sqlQueriesAll += qi.strQuery + "\n"
 		}
-		if verbose {
+		if util.IsInfo() {
 			util.Info("Checking %d SQL queries (%d characters)...", len(sqlQueriesSlice), len(sqlQueriesAll))
 			//fmt.Printf("%s\n", sqlQueriesAll)
 		}
-		checkQuery(queryInfo{strQuery: sqlQueriesAll, filename: "???"}, true)
-		if verbose {
+		checkQuery(queryInfo{strQuery: sqlQueriesAll, filename: "???"}, true, sqlqo.LintBinary)
+		if util.IsInfo() {
 			util.Info("Checking %d SQL queries done.", len(sqlQueriesSlice))
 		}
 	}
@@ -134,8 +141,8 @@ func paranoSqllintCheckQueries() {
 
 //------------------------------------------------------------------------------
 
-func checkQuery(qi queryInfo, isGroupOfQueries bool) (failed bool) {
-	if debugInfo {
+func checkQuery(qi queryInfo, isGroupOfQueries bool, sqlQueryLintBinary string) (failed bool) {
+	if util.IsDebug() {
 		util.DebugPrintf("checkQuery: %s", qi.strQuery)
 	}
 
@@ -146,7 +153,7 @@ func checkQuery(qi queryInfo, isGroupOfQueries bool) (failed bool) {
 		if isGroupOfQueries {
 			util.NotPass("Invalid SQL query in %s:\n%s", qi.filename, out)
 		} else {
-			util.NotPass("Invalid SQL query in %s: %s\n%s", qi.filename, getSQLQueryTruncated(qi.strQuery), out)
+			util.NotPass("Invalid SQL query in %s: %s\n%s", qi.filename, getStrTruncated(qi.strQuery), out)
 		}
 		failed = true
 		return
@@ -158,11 +165,11 @@ func checkQuery(qi queryInfo, isGroupOfQueries bool) (failed bool) {
 
 //------------------------------------------------------------------------------
 
-func getSQLQueryTruncated(sqlQueryStr string) string {
-	if len(sqlQueryStr) > 50 {
-		return sqlQueryStr[:48] + "..."
+func getStrTruncated(str string) string {
+	if len(str) > 50 {
+		return str[:48] + "..."
 	}
-	return sqlQueryStr
+	return str
 }
 
 //------------------------------------------------------------------------------
