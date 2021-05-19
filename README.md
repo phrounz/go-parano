@@ -12,16 +12,16 @@ WARNING: still in development. Tested only on Linux, but there is no reason it w
 
 If you don't need the SQL linter feature:
 ```
-$ go build -o go-parano.out ./src/ && ./go-parano.out -dir examples/
+$ go build -o go-parano.out && ./go-parano.out -dir examples/
 ```
 
 If you need the SQL linter feature (version installing and using phpmyadmin/sql-parser using composer):
 ```
-$ go build -o go-parano.out ./src/ && sh test_phpmyadmin_sql-parser.sh
+$ go build -o go-parano.out && sh test_phpmyadmin_sql-parser.sh
 ```
 If you need the SQL linter feature (version installing and using sqlfluff using pip):
 ```
-$ go build -o go-parano.out ./src/ && sh test_sqlfluff.sh
+$ go build -o go-parano.out && sh test_sqlfluff.sh
 ```
 
 It should display something like (example below is the version with phpmyadmin/sql-parser):
