@@ -6,7 +6,9 @@ var testVarOkay bool
 var testVarNotOkay bool
 
 //!PARANO__PRIVATE_TO_FILE
-func testFunctionNotOkay() {
+func testFunctionNotOkay() bool {
+	var banana = false
+	return banana
 }
 
 //!PARANO__PRIVATE_TO_FILE

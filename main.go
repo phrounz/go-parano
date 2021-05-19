@@ -36,6 +36,7 @@ func main() {
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
 	var sqlQueryAllInOnePtr = flag.Bool("sql-query-all-in-one", false, "If set, run the SQL query lint program once with all the queries as argument, instead of running once by query.")
 	var ignoreGoFilesPtr = flag.String("ignore-go-files", "", "List of files to ignore when using -dir or -pkg, comma-separated.")
+	var ignorePrivateToFilePtr = flag.String("ignore-private-to-file", "", "List of functions/variables which shall be ignored when checking private-to-file, comma-separated.")
 	flag.Parse()
 
 	//---
@@ -75,7 +76,18 @@ func main() {
 
 	var ignoreGoFiles = make(map[string]bool)
 	for _, file := range strings.Split(*ignoreGoFilesPtr, ",") {
+		if len(file) > 2 && file[:2] == "./" {
+			file = file[2:] // remove ./ because it causes a problem when matching files of -dir or -pkg
+		}
 		ignoreGoFiles[file] = true
+	}
+
+	//---
+	// -ignore-private-to-file
+
+	var ignorePrivateToFile = make(map[string]bool)
+	for _, name := range strings.Split(*ignorePrivateToFilePtr, ",") {
+		ignorePrivateToFile[name] = true
 	}
 
 	//---
@@ -93,7 +105,11 @@ func main() {
 	//---
 	// do stuff
 
-	src.DoAll(*pkgDirPtr, ignoreGoFiles, sqlqo)
+	src.DoAll(*pkgDirPtr, src.Options{
+		IgnoreGoFiles:       ignoreGoFiles,
+		IgnorePrivateToFile: ignorePrivateToFile,
+		Sqlqo:               sqlqo,
+	})
 
 	os.Exit(util.GetExitCode())
 }
@@ -108,7 +124,9 @@ func userFatalError(message string) {
 //------------------------------------------------------------------------------
 
 func usage() {
-	fmt.Println("use for help: " + os.Args[0] + " -h")
+	fmt.Printf(
+		"Use for help: " + os.Args[0] + " -h\n\n" +
+			"More informations at http://github.com/phrounz/go-parano\n")
 	os.Exit(1)
 }
 

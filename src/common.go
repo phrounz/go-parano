@@ -1,7 +1,6 @@
 package src
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -26,13 +25,20 @@ type infosFile struct {
 	featureExhaustiveFilling *featureExhaustiveFilling
 }
 
+// Options defines options for checks
+type Options struct {
+	IgnoreGoFiles       map[string]bool
+	IgnorePrivateToFile map[string]bool
+	Sqlqo               SQLQueryOptions
+}
+
 //------------------------------------------------------------------------------
 
-func DoAll(pkgDir string, ignoreGoFiles map[string]bool, sqlqo SQLQueryOptions) {
+func DoAll(pkgDir string, options Options) {
 
-	var rootPkg = recurseDir(pkgDir, ignoreGoFiles, sqlqo)
+	var rootPkg = recurseDir(pkgDir, options)
 
-	ParanoSqllintCheckQueries(sqlqo)
+	ParanoSqllintCheckQueries(options.Sqlqo)
 
 	var mInfosByPackageName = make(map[string]*packageInfos)
 	processPkgRecursiveAndMakeMap(rootPkg, mInfosByPackageName)
@@ -55,7 +61,7 @@ func processPkgRecursiveAndMakeMap(pkgInfos *packageInfos, mInfosByPackageName m
 
 //------------------------------------------------------------------------------
 
-func recurseDir(pkgDir string, ignoreGoFiles map[string]bool, sqlqo SQLQueryOptions) *packageInfos {
+func recurseDir(pkgDir string, options Options) *packageInfos {
 
 	var subPackagesInfos = make([]*packageInfos, 0)
 
@@ -73,7 +79,7 @@ func recurseDir(pkgDir string, ignoreGoFiles map[string]bool, sqlqo SQLQueryOpti
 				panic("File does not exist: " + item)
 			}
 			if info.IsDir() {
-				subPackagesInfos = append(subPackagesInfos, recurseDir(item, ignoreGoFiles, sqlqo))
+				subPackagesInfos = append(subPackagesInfos, recurseDir(item, options))
 			}
 		}
 	}
@@ -84,7 +90,7 @@ func recurseDir(pkgDir string, ignoreGoFiles map[string]bool, sqlqo SQLQueryOpti
 		util.Info("Processing package: %s", pkgDir)
 	}
 
-	var infosByFile = processPkgFiles(srcFiles, ignoreGoFiles, sqlqo)
+	var infosByFile = processPkgFiles(srcFiles, options)
 	var packageName string // note: remains empty string if no source files
 	for _, infosFile := range infosByFile {
 		packageName = infosFile.packageName
@@ -100,11 +106,15 @@ func recurseDir(pkgDir string, ignoreGoFiles map[string]bool, sqlqo SQLQueryOpti
 
 //------------------------------------------------------------------------------
 
-func processPkgFiles(files []string, ignoreGoFiles map[string]bool, sqlqo SQLQueryOptions) (infosByFile map[string]infosFile) {
+func processPkgFiles(files []string, options Options) (infosByFile map[string]infosFile) {
 
 	infosByFile = make(map[string]infosFile)
 	for _, filename := range files {
-		if _, ok := ignoreGoFiles[filename]; !ok {
+		if _, ok := options.IgnoreGoFiles[filename]; ok {
+			if util.IsDebug() || util.IsInfo() {
+				util.Info("  Ignoring: %s", filename)
+			}
+		} else {
 			infosByFile[filename] = processFile(filename)
 		}
 	}
@@ -116,23 +126,18 @@ func processPkgFiles(files []string, ignoreGoFiles map[string]bool, sqlqo SQLQue
 	//----
 	// third pass => check
 
-	var failedAtLeastOnce = false
 	for filename1, fileInfos := range infosByFile { // for each input file
 		fileInfos.rootNode.Visit(func(n *fileparser.Node) {
-			if len(sqlqo.FunctionsNames) > 0 {
-				failedAtLeastOnce = ParanoSqllintVisit(n, filename1, fileInfos.fileConstants, sqlqo) && failedAtLeastOnce
+			if len(options.Sqlqo.FunctionsNames) > 0 {
+				ParanoSqllintVisit(n, filename1, fileInfos.fileConstants, options.Sqlqo)
 			}
 			if n.Name != "" {
 				for filename2, fileInfos2 := range infosByFile { // for each file
-					failedAtLeastOnce = ParanoPrivateToFileCheck(n, fileInfos2.featurePrivateToFile, filename1, filename2) && failedAtLeastOnce
-					failedAtLeastOnce = ParanoExhaustiveFillingCheck(n, fileInfos2.packageName, fileInfos2.featureExhaustiveFilling, filename1, filename2) && failedAtLeastOnce
+					ParanoPrivateToFileCheck(n, fileInfos2.featurePrivateToFile, filename1, filename2, options.IgnorePrivateToFile)
+					ParanoExhaustiveFillingCheck(n, fileInfos2.packageName, fileInfos2.featureExhaustiveFilling, filename1, filename2)
 				}
 			}
 		})
-	}
-	if failedAtLeastOnce {
-		fmt.Println("Stopping program now.")
-		os.Exit(1)
 	}
 
 	return
@@ -142,7 +147,7 @@ func processPkgFiles(files []string, ignoreGoFiles map[string]bool, sqlqo SQLQue
 
 func processFile(filename string) infosFile {
 	if util.IsDebug() {
-		util.DebugPrintf("===============================> %s", filepath.Base(filename))
+		util.DebugPrintf("===============================> %s", filename)
 	}
 	if util.IsInfo() {
 		util.Info("  Scanning: " + filepath.Base(filename) + " ...")
@@ -179,7 +184,7 @@ func processFile(filename string) infosFile {
 	}
 
 	if util.IsDebug() {
-		util.DebugPrintf("\n\n\n%+v\n", infosf)
+		util.DebugPrintf("\n\n\n%+v %+v\n", infosf, *featurePrivateToFile)
 	}
 
 	return infosf

@@ -1,12 +1,13 @@
 # go-parano
-Experimental Go static analysis / robustness checker tool.
 
-go-parano is organized into different *features* (see below), 
+Experimental Go static analysis and robustness checker tool.
+
+go-parano contains several *features* (see below), 
 each feature checks a different thing. go-parano scans the source code 
 (argument -dir or -pkg), including specific keywords in comments, 
 and alerts (and returns exit code 2) if something is wrong.
 
-WARNING: still in development. Tested only on Linux, but there is no reason it would not work on other operating systems.
+Tested only on Linux, but there is no reason it would not work on other operating systems (except the bash commands and scripts used below).
 
 ## How to build and test
 

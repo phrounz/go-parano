@@ -42,6 +42,8 @@ func main() {
 	}
 	testFunctionNotOkay()
 
+	var banana = 4
+
 	localPrivateStuffTest = true
 
 	var _ = examplesub.Query(true, "SELECT \"\\1\", el.foo "+

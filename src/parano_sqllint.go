@@ -31,6 +31,10 @@ var sqlQueriesSlice []queryInfo
 const constIgnoreGoCheckDBQueries = "//!PARANO__IGNORE_CHECK_SQL_QUERIES"
 const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 
+const constDisclaimerGoCheckDB = "## To ignore this(these) error(s) (e.g. if you think this is a false positive), put " +
+	constIgnoreGoCheckDBQuery + " in the function call,\n" +
+	"## or " + constIgnoreGoCheckDBQueries + " on top of the function where this function call is done."
+
 //const constIgnoreGoCheckDBQueryAlt = "//ignore_go_check_db_queries"
 
 //------------------------------------------------------------------------------
@@ -151,9 +155,9 @@ func checkQuery(qi queryInfo, isGroupOfQueries bool, sqlQueryLintBinary string) 
 	//fmt.Printf("out: %s\n", out)
 	if out != "" && exitCode != 0 {
 		if isGroupOfQueries {
-			util.NotPass("Invalid SQL query in %s:\n%s", qi.filename, out)
+			util.NotPass("Invalid SQL query in %s:\n%s\n%s", qi.filename, out, constDisclaimerGoCheckDB)
 		} else {
-			util.NotPass("Invalid SQL query in %s: %s\n%s", qi.filename, getStrTruncated(qi.strQuery), out)
+			util.NotPass("Invalid SQL query in %s: %s\n%s\n%s", qi.filename, getStrTruncated(qi.strQuery), out, constDisclaimerGoCheckDB)
 		}
 		failed = true
 		return
