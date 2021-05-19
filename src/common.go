@@ -129,7 +129,13 @@ func processPkgFiles(files []string, options Options) (infosByFile map[string]in
 	for filename1, fileInfos := range infosByFile { // for each input file
 		fileInfos.rootNode.Visit(func(n *fileparser.Node) {
 			if len(options.Sqlqo.FunctionsNames) > 0 {
-				ParanoSqllintVisit(n, filename1, fileInfos.fileConstants, options.Sqlqo)
+				if _, ok := options.Sqlqo.IgnoreGoFiles[filename1]; ok {
+					if util.IsDebug() || util.IsInfo() {
+						util.Info("  Ignoring: %s", filename1)
+					}
+				} else {
+					ParanoSqllintVisit(n, filename1, fileInfos.fileConstants, options.Sqlqo)
+				}
 			}
 			if n.Name != "" {
 				for filename2, fileInfos2 := range infosByFile { // for each file

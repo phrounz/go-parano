@@ -15,6 +15,7 @@ type SQLQueryOptions struct {
 	FunctionsNames util.WildcardMap
 	AllInOne       bool
 	LintBinary     string
+	IgnoreGoFiles  map[string]bool
 }
 
 //------------------------------------------------------------------------------

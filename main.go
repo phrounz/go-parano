@@ -35,6 +35,7 @@ func main() {
 		"  (starting from 1) containing the query, e.g. \":2\" is the second function argument.")
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
 	var sqlQueryAllInOnePtr = flag.Bool("sql-query-all-in-one", false, "If set, run the SQL query lint program once with all the queries as argument, instead of running once by query.")
+	var sqlQueryIgnoreGoFilesPtr = flag.String("sql-query-ignore-go-files", "", "List of files to ignore when using -dir or -pkg, comma-separated, specific to sql-query feature.")
 	var ignoreGoFilesPtr = flag.String("ignore-go-files", "", "List of files to ignore when using -dir or -pkg, comma-separated.")
 	var ignorePrivateToFilePtr = flag.String("ignore-private-to-file", "", "List of functions/variables which shall be ignored when checking private-to-file, comma-separated.")
 	flag.Parse()
@@ -65,21 +66,33 @@ func main() {
 			sqlQueryFunctionsNames.Add(elSplitted[0], i)
 		}
 	}
+	var sqlQueryIgnoreGoFiles = make(map[string]bool)
+	if *sqlQueryIgnoreGoFilesPtr != "" {
+		for _, file := range strings.Split(*sqlQueryIgnoreGoFilesPtr, ",") {
+			if len(file) > 2 && file[:2] == "./" {
+				file = file[2:] // remove ./ because it causes a problem when matching files of -dir or -pkg
+			}
+			sqlQueryIgnoreGoFiles[file] = true
+		}
+	}
 	var sqlqo = src.SQLQueryOptions{
 		FunctionsNames: sqlQueryFunctionsNames,
 		AllInOne:       *sqlQueryAllInOnePtr,
 		LintBinary:     *sqlQueryLintBinaryPtr,
+		IgnoreGoFiles:  sqlQueryIgnoreGoFiles,
 	}
 
 	//---
 	// -ignore-go-files
 
 	var ignoreGoFiles = make(map[string]bool)
-	for _, file := range strings.Split(*ignoreGoFilesPtr, ",") {
-		if len(file) > 2 && file[:2] == "./" {
-			file = file[2:] // remove ./ because it causes a problem when matching files of -dir or -pkg
+	if *ignoreGoFilesPtr != "" {
+		for _, file := range strings.Split(*ignoreGoFilesPtr, ",") {
+			if len(file) > 2 && file[:2] == "./" {
+				file = file[2:] // remove ./ because it causes a problem when matching files of -dir or -pkg
+			}
+			ignoreGoFiles[file] = true
 		}
-		ignoreGoFiles[file] = true
 	}
 
 	//---
