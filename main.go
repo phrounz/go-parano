@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"./src"
-	"./src/util"
+	"github.com/phrounz/go-parano/src"
+	"github.com/phrounz/go-parano/src/util"
 )
 
 //------------------------------------------------------------------------------

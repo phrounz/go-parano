@@ -3,8 +3,8 @@ package src
 import (
 	"regexp"
 
-	"./fileparser"
-	"./util"
+	"github.com/phrounz/go-parano/src/fileparser"
+	"github.com/phrounz/go-parano/src/util"
 )
 
 //------------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"strings"
 
-	"../util"
+	"github.com/phrounz/go-parano/src/util"
 )
 
 //------------------------------------------------------------------------------

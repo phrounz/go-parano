@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"./fileparser"
-	"./util"
+	"github.com/phrounz/go-parano/src/fileparser"
+	"github.com/phrounz/go-parano/src/util"
 )
 
 //------------------------------------------------------------------------------
