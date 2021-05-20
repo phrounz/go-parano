@@ -1,5 +1,7 @@
 package main
 
+const constElements = "elements"
+
 var testVarOkay bool
 
 //!PARANO__PRIVATE_TO_FILE

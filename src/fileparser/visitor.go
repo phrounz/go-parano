@@ -51,6 +51,7 @@ func (v visitor) Visit(nodeObj ast.Node) ast.Visitor {
 		nodeObj:         &nodeObj,
 		Father:          v.node,
 		TypeStr:         "(unknown)",
+		Index:           len(v.node.Children),
 	}
 
 	v.node.Children = append(v.node.Children, n)

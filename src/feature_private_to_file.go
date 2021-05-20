@@ -98,11 +98,11 @@ func checkPrivateToFile(n *fileparser.Node, feat *featurePrivateToFile) {
 
 //------------------------------------------------------------------------------
 
-func ParanoPrivateToFileCheck(n *fileparser.Node, featurePrivateToFile *featurePrivateToFile, filename1 string, filename2 string, ignorePrivateToFile map[string]bool) {
+func ParanoPrivateToFileCheck(n *fileparser.Node, featurePrivateToFile *featurePrivateToFile, filename1 string, filename2 string, ignorePrivateToFile util.WildcardMap) {
 
 	if filename1 != filename2 {
 		if _, ok := featurePrivateToFile.privateToFileDecl[n.Name]; ok {
-			if _, ok2 := ignorePrivateToFile[n.Name]; ok2 {
+			if _, ok2 := ignorePrivateToFile.Find(n.Name); ok2 {
 				if util.IsDebug() {
 					util.DebugPrintf("Ignoring private to file: %s when used in %s (from %s)", n.Name, filename1, filename2)
 				}

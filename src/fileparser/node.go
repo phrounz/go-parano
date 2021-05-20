@@ -20,6 +20,7 @@ type Node struct {
 	DepthLevel      int
 	Father          *Node
 	Children        []*Node
+	Index           int // index of this node among the children of Father
 }
 
 //------------------------------------------------------------------------------
@@ -84,6 +85,10 @@ func (n *Node) IsCommentGroupWithComment(comment string) bool {
 
 // ComputeStringExpression compute/concatenate (recursively) a constant string expression,
 // e.g. "foo"+"bar"+string("baz") will return ("foobarbaz", false).
+//
+// This is a work in process, trying to compute all constants string expressions that we can know
+// at compile-time.
+//
 // If it contains something which is not processable, it will return incomplete=true and all
 // unprocessable parts will be replaced by "???" in str.
 func (n *Node) ComputeStringExpression(fileConstants []ConstValue) (str string, incomplete bool) {
@@ -118,9 +123,8 @@ func (n *Node) ComputeStringExpression(fileConstants []ConstValue) (str string, 
 
 	case "Ident":
 		for _, constValue := range fileConstants {
-			if n.Name == constValue.Name && n.IsInScope(constValue.Node) {
+			if n.Name == constValue.Name && (constValue.IsTopLevel || n.IsInScope(constValue.Node)) {
 				str = constValue.Value // constFoo (being declared elsewhere in the file as 'const constFoo="foo"')
-				// TODO does not work with stuff declared in another file of the same package
 				return
 			}
 		}

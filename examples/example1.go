@@ -60,7 +60,7 @@ func main() {
 	examplesub.QueryNoAnswer( //!PARANO__IGNORE_CHECK_SQL_QUERY
 		"SELECTYYYY")
 
-	const constElements = "elements"
+	//const constElements = "elements"
 	var varElements = "elements"
 	examplesub.Query(true, "SELECT * FROM "+string("elements"), true, "test")
 	examplesub.Query(true, "SELECT * FROM "+constElements, true, "test")

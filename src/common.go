@@ -27,8 +27,8 @@ type infosFile struct {
 
 // Options defines options for checks
 type Options struct {
-	IgnoreGoFiles       map[string]bool
-	IgnorePrivateToFile map[string]bool
+	IgnoreGoFiles       util.WildcardMap
+	IgnorePrivateToFile util.WildcardMap
 	Sqlqo               SQLQueryOptions
 }
 
@@ -110,7 +110,7 @@ func processPkgFiles(files []string, options Options) (infosByFile map[string]in
 
 	infosByFile = make(map[string]infosFile)
 	for _, filename := range files {
-		if _, ok := options.IgnoreGoFiles[filename]; ok {
+		if _, ok := options.IgnoreGoFiles.Find(filename); ok {
 			if util.IsDebug() || util.IsInfo() {
 				util.Info("  Ignoring: %s", filename)
 			}
@@ -123,18 +123,24 @@ func processPkgFiles(files []string, options Options) (infosByFile map[string]in
 		util.Info("  Checking ...")
 	}
 
+	var allConstants []fileparser.ConstValue
+	for _, fileInfos := range infosByFile { // for each input file
+		allConstants = append(allConstants, fileInfos.fileConstants...)
+		// TODO get constants declared in another package?
+	}
+
 	//----
 	// third pass => check
 
 	for filename1, fileInfos := range infosByFile { // for each input file
 		fileInfos.rootNode.Visit(func(n *fileparser.Node) {
-			if len(options.Sqlqo.FunctionsNames) > 0 {
-				if _, ok := options.Sqlqo.IgnoreGoFiles[filename1]; ok {
+			if options.Sqlqo.FunctionsNames.Count() > 0 {
+				if _, ok := options.Sqlqo.IgnoreGoFiles.Find(filename1); ok {
 					if util.IsDebug() || util.IsInfo() {
 						util.Info("  Ignoring: %s", filename1)
 					}
 				} else {
-					ParanoSqllintVisit(n, filename1, fileInfos.fileConstants, options.Sqlqo)
+					ParanoSqllintVisit(n, filename1, allConstants, options.Sqlqo)
 				}
 			}
 			if n.Name != "" {

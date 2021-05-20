@@ -18,10 +18,6 @@ func main() {
 	//---
 	// parse arguments
 
-	if len(os.Args) == 1 {
-		usage()
-	}
-
 	var noColorPtr = flag.Bool("nocolor", false, "Disables color in output.")
 	var pkgDirPtr = flag.String("dir", "", "Source directory.")
 	var pkgPtr = flag.String("pkg", "", "Source package.")
@@ -30,7 +26,6 @@ func main() {
 	var noWarnPtr = flag.Bool("no-warn", false, "Hide WARNING messages (those messages usually show something the program cannot check because of its limitations).")
 	var sqlQueryFunctionNamePtr = flag.String("sql-query-func-name", "", "Name of the function used for queries in the source code.\n"+
 		"- You may provide several function names, separated by comma.\n"+
-		"- Accepts up to one wilcard character '*' by function name.\n"+
 		"- Each function name must contain as suffix a colon followed by the argument index \n"+
 		"  (starting from 1) containing the query, e.g. \":2\" is the second function argument.")
 	var sqlQueryLintBinaryPtr = flag.String("sql-query-lint-binary", "", "SQL query lint program")
@@ -38,7 +33,11 @@ func main() {
 	var sqlQueryIgnoreGoFilesPtr = flag.String("sql-query-ignore-go-files", "", "List of files to ignore when using -dir or -pkg, comma-separated, specific to sql-query feature.")
 	var ignoreGoFilesPtr = flag.String("ignore-go-files", "", "List of files to ignore when using -dir or -pkg, comma-separated.")
 	var ignorePrivateToFilePtr = flag.String("ignore-private-to-file", "", "List of functions/variables which shall be ignored when checking private-to-file, comma-separated.")
+	flag.Usage = usage
 	flag.Parse()
+	if len(os.Args) == 1 {
+		usage()
+	}
 
 	//---
 	// -nocolor / -v / -debug / -no-warn
@@ -51,9 +50,8 @@ func main() {
 	//---
 	// -sql-query-XXX
 
-	var sqlQueryFunctionsNames util.WildcardMap
+	var sqlQueryFunctionsNames = util.NewWildcardMap()
 	if *sqlQueryFunctionNamePtr != "" {
-		sqlQueryFunctionsNames = util.NewWildcardMap()
 		for _, el := range strings.Split(*sqlQueryFunctionNamePtr, ",") {
 			var elSplitted = strings.Split(el, ":")
 			if len(elSplitted) != 2 {
@@ -66,13 +64,13 @@ func main() {
 			sqlQueryFunctionsNames.Add(elSplitted[0], i)
 		}
 	}
-	var sqlQueryIgnoreGoFiles = make(map[string]bool)
+	var sqlQueryIgnoreGoFiles = util.NewWildcardMap()
 	if *sqlQueryIgnoreGoFilesPtr != "" {
 		for _, file := range strings.Split(*sqlQueryIgnoreGoFilesPtr, ",") {
 			if len(file) > 2 && file[:2] == "./" {
 				file = file[2:] // remove ./ because it causes a problem when matching files of -dir or -pkg
 			}
-			sqlQueryIgnoreGoFiles[file] = true
+			sqlQueryIgnoreGoFiles.Add(file, nil)
 		}
 	}
 	var sqlqo = src.SQLQueryOptions{
@@ -85,22 +83,22 @@ func main() {
 	//---
 	// -ignore-go-files
 
-	var ignoreGoFiles = make(map[string]bool)
+	var ignoreGoFiles = util.NewWildcardMap()
 	if *ignoreGoFilesPtr != "" {
 		for _, file := range strings.Split(*ignoreGoFilesPtr, ",") {
 			if len(file) > 2 && file[:2] == "./" {
 				file = file[2:] // remove ./ because it causes a problem when matching files of -dir or -pkg
 			}
-			ignoreGoFiles[file] = true
+			ignoreGoFiles.Add(file, nil)
 		}
 	}
 
 	//---
 	// -ignore-private-to-file
 
-	var ignorePrivateToFile = make(map[string]bool)
+	var ignorePrivateToFile = util.NewWildcardMap()
 	for _, name := range strings.Split(*ignorePrivateToFilePtr, ",") {
-		ignorePrivateToFile[name] = true
+		ignorePrivateToFile.Add(name, nil)
 	}
 
 	//---
@@ -110,6 +108,9 @@ func main() {
 		*pkgDirPtr = os.Getenv("GOPATH") + "/src/" + *pkgPtr
 	}
 
+	if *pkgDirPtr == "" {
+		userFatalError("Missing or empty argument -dir/-pkg")
+	}
 	_, err := os.Stat(*pkgDirPtr)
 	if os.IsNotExist(err) {
 		userFatalError("Folder " + *pkgDirPtr + " does not exist.")
@@ -138,8 +139,15 @@ func userFatalError(message string) {
 
 func usage() {
 	fmt.Printf(
-		"Use for help: " + os.Args[0] + " -h\n\n" +
-			"More informations at http://github.com/phrounz/go-parano\n")
+		"Rationale:\n" +
+			"  Go static analysis and robustness checker tool. More informations at http://github.com/phrounz/go-parano\n" +
+			"Usage:\n" +
+			"  " + os.Args[0] + " [-dir <...>|-pkg <...>] [...]\n")
+	fmt.Fprintf(os.Stderr, "Arguments:\n")
+	flag.PrintDefaults()
+	fmt.Printf("Note:\n" +
+		"  Options -ignore-go-files,-ignore-private-to-file,-sql-query-func-name,-sql-query-ignore-go-files \n" +
+		"  accept up to one one wilcard character '*' by element.\n")
 	os.Exit(1)
 }
 

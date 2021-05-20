@@ -15,7 +15,7 @@ type SQLQueryOptions struct {
 	FunctionsNames util.WildcardMap
 	AllInOne       bool
 	LintBinary     string
-	IgnoreGoFiles  map[string]bool
+	IgnoreGoFiles  util.WildcardMap
 }
 
 //------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ const constDisclaimerGoCheckDB = "## To ignore this(these) error(s) (e.g. if you
 
 //------------------------------------------------------------------------------
 
-func ParanoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants []fileparser.ConstValue, sqlqo SQLQueryOptions) bool {
+func ParanoSqllintVisit(nCaller *fileparser.Node, filename string, constantValues []fileparser.ConstValue, sqlqo SQLQueryOptions) bool {
 	if nCaller != nil && nCaller.TypeStr == "CallExpr" {
 
 		var value, ok = sqlqo.FunctionsNames.Find(nCaller.Name)
@@ -80,7 +80,7 @@ func ParanoSqllintVisit(nCaller *fileparser.Node, filename string, fileConstants
 		if util.IsDebug() {
 			util.DebugPrintf("paranoSqllintVisit: %s %s %s %s", goodN.TypeStr, goodN.Name, nCaller.TypeStr, nCaller.Name)
 		}
-		var strQuery, abort = goodN.ComputeStringExpression(fileConstants)
+		var strQuery, abort = goodN.ComputeStringExpression(constantValues)
 		if abort {
 			if util.IsWarn() {
 				util.Warn("File '%s': Cannot check query in function call %s: %s", filename, nCaller.Name, goodN.Bytes)
