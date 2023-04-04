@@ -31,12 +31,11 @@ var sqlQueriesSlice []queryInfo
 
 const constIgnoreGoCheckDBQueries = "//!PARANO__IGNORE_CHECK_SQL_QUERIES"
 const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
+const constIgnoreGoCheckDBQueryAlt = "// !PARANO__IGNORE_CHECK_SQL_QUERY"
 
 const constDisclaimerGoCheckDB = "## To ignore this(these) error(s) (e.g. if you think this is a false positive), put " +
 	constIgnoreGoCheckDBQuery + " in the function call,\n" +
 	"## or " + constIgnoreGoCheckDBQueries + " on top of the function where this function call is done."
-
-//const constIgnoreGoCheckDBQueryAlt = "//ignore_go_check_db_queries"
 
 //------------------------------------------------------------------------------
 
@@ -88,7 +87,7 @@ func ParanoSqllintVisit(nCaller *fileparser.Node, filename string, constantValue
 			return false
 		}
 
-		if strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQuery) != -1 /*|| strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQueryAlt) != -1*/ {
+		if strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQuery) != -1 || strings.Index(nCaller.Bytes, constIgnoreGoCheckDBQueryAlt) != -1 {
 			if util.IsDebug() || util.IsInfo() {
 				util.Info("    Ignoring SQL query in '%s': %s", filename, getStrTruncated(strQuery))
 			}
