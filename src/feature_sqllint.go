@@ -34,7 +34,7 @@ const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 const constIgnoreGoCheckDBQueryAlt = "// !PARANO__IGNORE_CHECK_SQL_QUERY"
 
 const constDisclaimerGoCheckDB = "## To ignore this(these) error(s) (e.g. if you think this is a false positive), put " +
-	constIgnoreGoCheckDBQuery + " in the function call,\n" +
+	constIgnoreGoCheckDBQuery + " or " + constIgnoreGoCheckDBQueryAlt + " in the function call,\n" +
 	"## or " + constIgnoreGoCheckDBQueries + " on top of the function where this function call is done."
 
 //------------------------------------------------------------------------------
