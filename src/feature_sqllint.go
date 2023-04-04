@@ -30,12 +30,13 @@ var sqlQueriesSlice []queryInfo
 //------------------------------------------------------------------------------
 
 const constIgnoreGoCheckDBQueries = "//!PARANO__IGNORE_CHECK_SQL_QUERIES"
+const constIgnoreGoCheckDBQueriesAlt = "// !PARANO__IGNORE_CHECK_SQL_QUERIES"
 const constIgnoreGoCheckDBQuery = "//!PARANO__IGNORE_CHECK_SQL_QUERY"
 const constIgnoreGoCheckDBQueryAlt = "// !PARANO__IGNORE_CHECK_SQL_QUERY"
 
 const constDisclaimerGoCheckDB = "## To ignore this(these) error(s) (e.g. if you think this is a false positive), put " +
 	constIgnoreGoCheckDBQuery + " or " + constIgnoreGoCheckDBQueryAlt + " in the function call,\n" +
-	"## or " + constIgnoreGoCheckDBQueries + " on top of the function where this function call is done."
+	"## or " + constIgnoreGoCheckDBQueries + " or " + constIgnoreGoCheckDBQueriesAlt + " on top of the function where this function call is done."
 
 //------------------------------------------------------------------------------
 
@@ -98,7 +99,7 @@ func ParanoSqllintVisit(nCaller *fileparser.Node, filename string, constantValue
 		for nFather != nil {
 			if nFather.TypeStr == "FuncDecl" {
 				for _, subn := range nFather.Children {
-					if subn.IsCommentGroupWithComment(constIgnoreGoCheckDBQueries) {
+					if subn.IsCommentGroupWithComment(constIgnoreGoCheckDBQueries) || subn.IsCommentGroupWithComment(constIgnoreGoCheckDBQueriesAlt) {
 						if util.IsDebug() || util.IsInfo() {
 							util.Info("    Ignoring SQL query in '%s' within function %s: %s", filename, nFather.Name, getStrTruncated(strQuery))
 						}
